@@ -87,14 +87,16 @@ protect_fork() {
   local repo
   repo="$(echo "$REPO_URL" | sed -E 's#https?://github.com/##; s#\.git$##')"
   echo "==> Requiring CI checks on ${repo} main"
+  # Check-run names are the job ids (validate, verify, freshness), not
+  # "workflow / job". The longer form never reports success, so every PR stays blocked.
   gh api --method PUT "repos/${repo}/branches/main/protection" --input - <<'EOF'
 {
   "required_status_checks": {
     "strict": false,
     "contexts": [
-      "golden-path-ci / validate",
-      "repo-verify / verify",
-      "docs-freshness / freshness"
+      "validate",
+      "verify",
+      "freshness"
     ]
   },
   "enforce_admins": true,
@@ -102,6 +104,7 @@ protect_fork() {
   "restrictions": null
 }
 EOF
+  echo
 }
 
 raise_inotify_limits
