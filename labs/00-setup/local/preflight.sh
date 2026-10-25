@@ -24,12 +24,14 @@ arch="$(uname -m)"
 emit "arch" pass
 
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  mem_kb="$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo 0)"
-  mem_gb=$(( mem_kb / 1024 / 1024 ))
-  if (( mem_gb >= 12 )); then
+  # MemTotal is bytes. A 12 GB VM allocation reports a little under 12,
+  # so the check passes at 11 GB or more.
+  mem_bytes="$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo 0)"
+  mem_gb=$(( mem_bytes / 1024 / 1024 / 1024 ))
+  if (( mem_gb >= 11 )); then
     emit "docker.memory" pass
   else
-    emit "docker.memory" fail "docker is limited to ${mem_gb} GB; the stack needs at least 12 (16 recommended). Raise Docker Desktop settings."
+    emit "docker.memory" fail "docker reports ${mem_gb} GB; allocate at least 12 GB to the VM (16 recommended)."
   fi
   cpus="$(docker info --format '{{.NCPU}}' 2>/dev/null || echo 0)"
   if (( cpus >= 4 )); then
@@ -91,9 +93,9 @@ if [[ -n "${GH_REPO:-}" ]]; then
     default="$(gh repo view "$GH_REPO" --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "")"
     if [[ "$default" == "main" ]]; then emit "fork" pass
     else emit "fork" fail "GH_REPO=$GH_REPO does not look like your fork (default branch: '${default:-unreachable}'). Check 'gh repo view $GH_REPO'."; fi
-    actions="$(gh api "repos/$GH_REPO/actions" -q .disabled 2>/dev/null || echo "")"
-    if [[ "$actions" == "false" ]]; then emit "fork.actions" pass
-    elif [[ "$actions" == "true" ]]; then emit "fork.actions" fail "GitHub Actions is disabled on $GH_REPO. Settings -> General -> Actions: set to 'Allow all actions'."
+    actions="$(gh api "repos/$GH_REPO/actions/permissions" -q .enabled 2>/dev/null || echo "")"
+    if [[ "$actions" == "true" ]]; then emit "fork.actions" pass
+    elif [[ "$actions" == "false" ]]; then emit "fork.actions" fail "GitHub Actions is disabled on $GH_REPO. Settings -> General -> Actions: set to 'Allow all actions'."
     else emit "fork.actions" fail "could not check the Actions setting on $GH_REPO (permission?). Enable Actions on the fork before the workshop."; fi
   fi
 else

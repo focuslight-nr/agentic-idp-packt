@@ -1,0 +1,39 @@
+name: docs-freshness
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Release binary, not `go install`. A module build drops the helm-docs
+      # footer, so CI would disagree with the committed knowledge base.
+      # Bumping the version changes that footer: regenerate in the same PR.
+      - name: Install helm-docs
+        run: |
+          curl -fsSL -o /tmp/helm-docs.tgz https://github.com/norwoodj/helm-docs/releases/download/v1.14.2/helm-docs_1.14.2_Linux_x86_64.tar.gz
+          tar -xzf /tmp/helm-docs.tgz -C /usr/local/bin helm-docs
+          chmod +x /usr/local/bin/helm-docs
+
+      - name: Install yq
+        run: |
+          curl -fsSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Regenerate the knowledge base
+        run: ./labs/02-knowledge-base/scripts/generate-docs.sh
+
+      - name: Fail if the knowledge base is stale
+        shell: bash
+        run: |
+          if [[ -n "$(git status --porcelain -- labs/02-knowledge-base/kb/generated)" ]]; then
+            git status --porcelain -- labs/02-knowledge-base/kb/generated
+            git diff -- labs/02-knowledge-base/kb/generated
+            echo "::error::The knowledge base is stale. Run ./labs/02-knowledge-base/scripts/generate-docs.sh and commit the result."
+            exit 1
+          fi

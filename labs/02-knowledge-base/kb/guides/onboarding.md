@@ -24,7 +24,7 @@ One JSON line per check. The exit code is non-zero while any check fails.
 |---|---|---|
 | `arch` | Always passes; informational (`arm64` or `x86_64`). | Nothing. |
 | `docker` | Docker is installed **and running**. | Start Docker Desktop (or your runtime). On Apple Silicon, confirm Rosetta is off for Linux containers if images fail to pull. |
-| `docker.memory` | Docker's memory limit. Needs **12 GB, 16 recommended** — the stack is Argo CD, Prometheus, Kyverno, LiteLLM, Langfuse and Postgres on a 2-node kind cluster. | Raise **Settings → Resources → Memory** in Docker Desktop to 16 GB and restart Docker. |
+| `docker.memory` | Docker reports at least 11 GB. Allocate **12 GB, 16 recommended**. A 12 GB VM reports a little under 12. The stack is Argo CD, Prometheus, Kyverno, LiteLLM, Langfuse and Postgres on a 2-node kind cluster. | Raise the VM memory to 12 GB or more and restart it. |
 | `docker.cpus` | Docker sees at least 4 CPUs. | Settings → Resources → CPU: 4 or more. |
 | `disk` | At least 25 GB free on the volume holding the repo (the images are large). | Free space; move or remove unused container images (`docker system prune`). |
 | `tool.<name>` | One line per required tool: `git`, `kind`, `kubectl`, `helm`, `yq`, `jq`, `envsubst`, `kubeconform`, `helm-docs`, `gh`. | Install the named tool (`brew install` on macOS for most of them). |
@@ -32,6 +32,7 @@ One JSON line per check. The exit code is non-zero while any check fails.
 | `tool.gh` | `gh` **2.50 or newer** — Lab 1 uses `gh pr checks --watch`. | `brew upgrade gh`. |
 | `gh.auth` | `gh` is logged in. | `gh auth login` (the fork and its checks need it). |
 | `fork` | `GH_REPO` is set and points at a fork whose default branch is `main`. | `export GH_REPO=<you>/agentic-idp-packt` (add it to your shell profile), and `gh repo set-default <you>/agentic-idp-packt`. |
+| `fork.actions` | GitHub Actions is enabled on the fork. | Settings → Actions → General → Actions permissions: Allow all actions. |
 | `cluster` | Informational before bootstrap: says whether the `kind-agentic-idp` cluster exists yet. | Nothing before bootstrap. |
 
 The final line is the summary: `{"check":"summary","status":"pass","failures":0}`.
@@ -54,7 +55,7 @@ Never commit `.env`. It is local-only.
 ./labs/00-setup/local/bootstrap.sh
 ```
 
-It creates the `agentic-idp` kind cluster, installs the platform stack, applies the post–Lab 2 state, and installs LiteLLM and Langfuse in-cluster. When it is done, verify:
+It raises Colima's inotify limit when Colima is the runtime, builds the workshop images, creates the `agentic-idp` kind cluster, loads the images, installs the platform stack, applies the post–Lab 2 state, installs LiteLLM and Langfuse in-cluster, and requires the CI checks on the fork's `main`. When it is done, verify:
 
 ```bash
 kubectl config current-context            # kind-agentic-idp

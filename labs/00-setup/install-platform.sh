@@ -33,7 +33,7 @@ helm upgrade --install argocd argo/argo-cd \
   --version "$ARGOCD_CHART_VERSION" \
   --namespace argocd --create-namespace \
   "${argocd_args[@]}" \
-  --wait
+  --wait --timeout 10m
 
 if [[ -n "${ARGOCD_WEBHOOK_HOST:-}" ]]; then
   echo "==> Exposing only the ArgoCD webhook endpoint at $ARGOCD_WEBHOOK_HOST"
@@ -75,6 +75,6 @@ helm upgrade --install kyverno kyverno/kyverno \
   --set backgroundController.replicas=1 \
   --set cleanupController.replicas=1 \
   --set reportsController.replicas=1 \
-  --wait
+  --wait --timeout 10m
 
 echo "==> Platform stack installed"

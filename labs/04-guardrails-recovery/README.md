@@ -32,6 +32,8 @@ Keep working with the Hermes you deployed in Lab 3. Check each of its guardrails
    kubectl auth can-i delete namespaces --as=system:serviceaccount:agents:hermes-reader   # yes: RBAC allows it
    ```
 
+   Kyverno prints a warning that `ClusterPolicy` is deprecated. The policy is still enforced.
+
    Hermes's MCP server is read-only, so it has no write tools to try this with. Instead, you **impersonate** its identity with `--as` and do what the poisoned logs in Lab 3 asked for, plus removing its own guardrail:
 
    ```bash
@@ -105,11 +107,13 @@ Keep working with the Hermes you deployed in Lab 3. Check each of its guardrails
 
    ```bash
    kubectl -n litellm port-forward svc/litellm 4000:4000 &
-   export LITELLM_MASTER_KEY=$(kubectl -n litellm get secret litellm-master-key -o jsonpath='{.data.masterkey}' | base64 -d)
+   set -a
+   source labs/00-setup/local/.litellm-admin
+   set +a
    LITELLM_ADMIN_URL=http://localhost:4000 ./labs/04-guardrails-recovery/scripts/kill-switch.sh local --block-key
    ```
 
-   The script resolves the key by alias `attendee-local` through the gateway's `/key/list`, then calls `/key/block`. In production this is one command against one central gateway, for one key at a time. (In-cluster LiteLLM is part of the bootstrap; see the `local/` README `[PLANNED]` list.)
+   The script resolves the key by alias `attendee-local` through the gateway's `/key/list`, then calls `/key/block`. Bootstrap writes the admin key to `labs/00-setup/local/.litellm-admin`. In production this is one command against one central gateway, for one key at a time.
 
 ## If you finished early
 

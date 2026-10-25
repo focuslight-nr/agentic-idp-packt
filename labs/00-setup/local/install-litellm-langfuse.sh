@@ -85,7 +85,9 @@ fi
 echo "==> Creating litellm-secrets"
 if ! kubectl get ns litellm >/dev/null 2>&1; then
   kubectl create namespace litellm
-  kubectl wait --for=condition=Active ns/litellm --timeout=120s
+  # phase becomes Active. A Namespace has no status condition named Active,
+  # so --for=condition=Active waits until the timeout on a healthy namespace.
+  kubectl wait --for=jsonpath='{.status.phase}'=Active ns/litellm --timeout=120s
 fi
 kubectl -n litellm create secret generic litellm-secrets \
   --from-literal=LITELLM_MASTER_KEY="$LITELLM_MASTER_KEY" \
@@ -153,7 +155,7 @@ kubectl -n agents create secret generic hermes-llm \
 
 # --- Persist the admin key for the kill switch ------------------------------
 echo "==> Storing LITELLM_MASTER_KEY for the kill switch"
-echo "LITELLM_MASTER_KEY=$LITELLM_MASTER_KEY" >> "$SCRIPT_DIR/.litellm-admin"
+printf 'LITELLM_MASTER_KEY=%s\n' "$LITELLM_MASTER_KEY" > "$SCRIPT_DIR/.litellm-admin"
 chmod 600 "$SCRIPT_DIR/.litellm-admin" 2>/dev/null || true
 
 cat <<EOF

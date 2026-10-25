@@ -15,6 +15,18 @@ header() {
   echo
 }
 
+# yq prints a blank line for every YAML document that does not match `select`.
+# Drop those so the committed files stay the same across yq versions.
+rows() {
+  local line
+  while IFS= read -r line; do
+    # yq 4.45 prints "| " for every YAML document that does not match select.
+    [[ "$line" =~ ^\|[[:space:]]*$ ]] && continue
+    [[ -n "$line" ]] && printf '%s\n' "$line"
+  done
+  return 0
+}
+
 {
   header "Golden path chart reference"
   helm-docs --chart-search-root labs/01-golden-path/platform/charts --dry-run 2>/dev/null
@@ -37,7 +49,7 @@ header() {
   echo "|---|---|---|---|"
   for rules in $(ls labs/*/alerts/*.yaml 2>/dev/null | sort); do
     yq -r '.spec.groups[].rules[] | select(.alert) |
-      "| " + .alert + " | " + .labels.severity + " | " + .annotations.summary + " | " + (.annotations.runbook_url | sub(".*/labs/"; "labs/")) + " |"' "$rules"
+      "| " + .alert + " | " + .labels.severity + " | " + .annotations.summary + " | " + (.annotations.runbook_url | sub(".*/labs/"; "labs/")) + " |"' "$rules" | rows
   done
 } > "$OUT/alerts.md"
 
@@ -47,7 +59,7 @@ header() {
   echo "|---|---|---|---|"
   for policy in $(ls labs/*/policies/*.yaml 2>/dev/null | sort); do
     yq -r "select(.kind == \"ClusterPolicy\") |
-      \"| \" + .metadata.name + \" | \" + .metadata.annotations.\"policies.kyverno.io/title\" + \" | \" + .metadata.annotations.\"policies.kyverno.io/description\" + \" | \`$policy\` |\"" "$policy"
+      \"| \" + .metadata.name + \" | \" + .metadata.annotations.\"policies.kyverno.io/title\" + \" | \" + .metadata.annotations.\"policies.kyverno.io/description\" + \" | \`$policy\` |\"" "$policy" | rows
   done
 } > "$OUT/policies.md"
 
@@ -57,7 +69,7 @@ header() {
   echo "|---|---|---|---|---|"
   for rbac in $(ls labs/*/platform/rbac*.yaml labs/*/rbac/*.yaml 2>/dev/null | sort); do
     yq -r "select(.kind == \"ClusterRole\" or .kind == \"Role\") | .metadata.name as \$role | (.metadata.annotations.\"platform.workshop/identity\" // \"-\") as \$id |
-      .rules[] | \"| \" + \$id + \" | \" + \$role + \" | \" + (.resources | join(\", \")) + \" | \" + (.verbs | join(\", \")) + \" | \`$rbac\` |\"" "$rbac"
+      .rules[] | \"| \" + \$id + \" | \" + \$role + \" | \" + (.resources | join(\", \")) + \" | \" + (.verbs | join(\", \")) + \" | \`$rbac\` |\"" "$rbac" | rows
   done
 } > "$OUT/agent-identities.md"
 

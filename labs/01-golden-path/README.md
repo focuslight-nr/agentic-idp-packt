@@ -42,7 +42,7 @@ gh pr create --fill
 gh pr checks --watch
 ```
 
-The check fails with `{"app":"labs/01-golden-path/apps/orders","status":"fail","error":"image.tag is required and must not be latest"}`, and branch protection blocks the merge. Close the PR and go back to `main` when you are done:
+The check fails with `{"app":"labs/01-golden-path/apps/orders","status":"fail","error":"image.tag is required and must not be latest"}`. Bootstrap required that check on `main`, so the merge is blocked. Close the PR and go back to `main` when you are done:
 
 ```bash
 gh pr close --delete-branch && git checkout main

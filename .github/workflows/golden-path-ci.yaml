@@ -1,0 +1,52 @@
+name: golden-path-ci
+
+# No path filters: branch protection requires this check on every PR.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned release: the golden path must validate against a known set of
+      # schemas, not whatever is newest on a random day.
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin kubeconform
+
+      - name: Install yq
+        run: |
+          curl -fsSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Install helm
+        run: |
+          curl -fsSL -o /tmp/helm.tgz https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          mv /tmp/linux-amd64/helm /usr/local/bin/helm
+          rm -rf /tmp/helm.tgz /tmp/linux-amd64
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Lint the golden path chart
+        run: helm lint labs/01-golden-path/platform/charts/service --set image.repository=example --set image.tag=1.0.0
+
+      - name: Validate apps
+        shell: bash
+        run: |
+          status=0
+          ./labs/01-golden-path/scripts/validate-apps.sh > validation.jsonl || status=$?
+          cat validation.jsonl
+          {
+            echo "## Golden path validation"
+            echo '```json'
+            cat validation.jsonl
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

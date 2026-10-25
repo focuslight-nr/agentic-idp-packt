@@ -4,7 +4,7 @@ Hands-on workshop. You run the platform on your laptop, in a [kind](https://kind
 
 ## Before the session
 
-Docker needs 16 GB of memory and 4 CPUs. Then:
+Docker needs 12 GB of memory (16 recommended) and 4 CPUs. Then:
 
 ```bash
 git clone https://github.com/<you>/agentic-idp-packt.git

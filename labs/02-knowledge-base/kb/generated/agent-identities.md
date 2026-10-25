@@ -4,12 +4,6 @@
 
 | Identity | Role | Resources | Verbs | Source |
 |---|---|---|---|---|
-| 
-| 
-| 
-| 
-| 
 | hermes | hermes-reader | pods, pods/log, events, services, configmaps, namespaces, nodes | get, list, watch | `labs/03-hermes-triage/platform/rbac.yaml` |
 | hermes | hermes-reader | deployments, replicasets, statefulsets, daemonsets | get, list, watch | `labs/03-hermes-triage/platform/rbac.yaml` |
 | hermes | hermes-reader | events | get, list, watch | `labs/03-hermes-triage/platform/rbac.yaml` |
-| 

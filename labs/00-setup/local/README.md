@@ -6,7 +6,9 @@ You get a kind cluster on your laptop — cluster name `agentic-idp`, from [`kin
 
 ## Prerequisites
 
-Docker with 16 GB of memory and 4 CPUs, plus `kind`, `kubectl`, `helm`, `yq` (mikefarah 4.x), `jq`, `envsubst`, `kubeconform`, and `helm-docs`. The `gh` CLI (2.50 or newer) must be logged in. About 25 GB of free disk.
+Docker with 12 GB of memory allocated (16 recommended) and 4 CPUs, plus `kind`, `kubectl`, `helm`, `yq` (mikefarah 4.x), `jq`, `envsubst`, `kubeconform`, and `helm-docs`. The `gh` CLI (2.50 or newer) must be logged in. About 25 GB of free disk.
+
+On Colima, bootstrap raises `fs.inotify.max_user_instances` to 8192 before it creates the cluster. The default of 128 keeps the worker node from becoming Ready. A Colima restart clears the sysctl; run bootstrap again and it sets the limit once more.
 
 ## Steps
 
@@ -27,9 +29,7 @@ cp labs/00-setup/local/.env.example labs/00-setup/local/.env
 ./labs/00-setup/local/bootstrap.sh
 ```
 
-The bootstrap leaves the cluster in the post–Lab 2 state: `orders` and `runbooks` are `Synced` and `Healthy`.
-
-Before Lab 3, build the images and load them into kind. The bootstrap prints the commands when it finishes.
+The bootstrap leaves the cluster in the post–Lab 2 state: `orders` and `runbooks` are `Synced` and `Healthy`. It builds `agentic-idp/orders:0.1.0`, `hermes-triage:0.1.0`, and `runbook-bot:0.1.0` and loads them into kind. It also requires the CI checks on your fork's `main`, so Lab 1's `latest` tag cannot be merged.
 
 ## Auto-onboarding with Cursor
 

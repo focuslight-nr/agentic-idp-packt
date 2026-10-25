@@ -10,7 +10,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 CLUSTER_NAME="agentic-idp"
 ENV_FILE="$LOCAL_DIR/.env"
 
-for tool in docker kind kubectl helm yq envsubst; do
+for tool in docker kind kubectl helm yq envsubst gh; do
   command -v "$tool" >/dev/null || { echo "Missing required tool: $tool" >&2; exit 1; }
 done
 
@@ -24,6 +24,89 @@ source "$ENV_FILE"
 : "${REPO_WEB_URL:?Set REPO_WEB_URL in $ENV_FILE}"
 : "${OPENROUTER_API_KEY:?Set OPENROUTER_API_KEY in $ENV_FILE (your capped provider key)}"
 
+raise_inotify_limits() {
+  if ! command -v colima >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! colima status >/dev/null 2>&1; then
+    return 0
+  fi
+  # Colima's default fs.inotify.max_user_instances is 128. A 2-node kind
+  # cluster exhausts that, the worker kubelet never registers, and the Argo
+  # install then dies on Helm's wait. The limit resets when the VM restarts.
+  echo "==> Raising Colima inotify limits"
+  colima ssh -- sudo sysctl -w fs.inotify.max_user_instances=8192
+  colima ssh -- sudo sysctl -w fs.inotify.max_user_watches=1048576
+}
+
+wait_for_nodes() {
+  if kubectl wait --for=condition=Ready node --all --timeout=30s >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "==> A node is not Ready. Restarting kubelets so they pick up the inotify limit."
+  local node
+  for node in $(kind get nodes --name "$CLUSTER_NAME"); do
+    docker exec "$node" systemctl restart kubelet
+  done
+  kubectl wait --for=condition=Ready node --all --timeout=180s
+}
+
+build_images() {
+  echo "==> Building workshop images"
+  docker build -t agentic-idp/orders:0.1.0 "$ROOT/labs/01-golden-path/apps/orders"
+  docker build -t hermes-triage:0.1.0 "$ROOT/labs/03-hermes-triage/hermes"
+  docker build -t runbook-bot:0.1.0 "$ROOT/labs/03-hermes-triage/runbook-bot"
+}
+
+load_images() {
+  echo "==> Loading images into kind"
+  kind load docker-image \
+    agentic-idp/orders:0.1.0 \
+    hermes-triage:0.1.0 \
+    runbook-bot:0.1.0 \
+    --name "$CLUSTER_NAME"
+}
+
+wait_for_post_lab2() {
+  echo "==> Waiting for orders and runbooks to become Healthy"
+  local i orders runbooks
+  for i in $(seq 1 30); do
+    orders="$(kubectl -n argocd get application orders -o jsonpath='{.status.health.status}' 2>/dev/null || true)"
+    runbooks="$(kubectl -n argocd get application runbooks -o jsonpath='{.status.health.status}' 2>/dev/null || true)"
+    echo "    orders=${orders:-missing} runbooks=${runbooks:-missing}"
+    if [[ "$orders" == "Healthy" && "$runbooks" == "Healthy" ]]; then
+      return 0
+    fi
+    sleep 10
+  done
+  echo "orders and runbooks did not become Healthy within 5 minutes" >&2
+  exit 1
+}
+
+protect_fork() {
+  local repo
+  repo="$(echo "$REPO_URL" | sed -E 's#https?://github.com/##; s#\.git$##')"
+  echo "==> Requiring CI checks on ${repo} main"
+  gh api --method PUT "repos/${repo}/branches/main/protection" --input - <<'EOF'
+{
+  "required_status_checks": {
+    "strict": false,
+    "contexts": [
+      "golden-path-ci / validate",
+      "repo-verify / verify",
+      "docs-freshness / freshness"
+    ]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": null,
+  "restrictions": null
+}
+EOF
+}
+
+raise_inotify_limits
+build_images
+
 if ! kind get clusters | grep -qx "$CLUSTER_NAME"; then
   echo "==> Creating kind cluster $CLUSTER_NAME"
   kind create cluster --config "$LOCAL_DIR/kind-config.yaml"
@@ -31,10 +114,14 @@ else
   echo "==> kind cluster $CLUSTER_NAME already exists"
 fi
 kubectl config use-context "kind-$CLUSTER_NAME"
+wait_for_nodes
+load_images
 
 "$SETUP_DIR/install-platform.sh"
 export REPO_URL REPO_WEB_URL
 "$SETUP_DIR/apply-post-lab2.sh"
+wait_for_post_lab2
+protect_fork
 
 # In-cluster LiteLLM gateway + Langfuse, and the hermes-llm Secret wired to the
 # gateway's attendee-local virtual key. Also creates the Langfuse project and
@@ -75,12 +162,8 @@ Smoke gate: $SMOKE_STATUS
   gateway:  http://litellm.litellm.svc.cluster.local:4000/v1  (alias qwen3.8-27b)
   hermes:   agents/hermes-llm (virtual key alias attendee-local)
   kill:     kill-switch.sh local --block-key uses LITELLM_MASTER_KEY (see .litellm-admin)
+  images:   agentic-idp/orders:0.1.0, hermes-triage:0.1.0, runbook-bot:0.1.0 (loaded into kind)
 
-Before Lab 3, build the images and load them into kind:
-  docker build -t orders:0.1.0 labs/01-golden-path/apps/orders
-  docker build -t hermes-triage:0.1.0 labs/03-hermes-triage/hermes
-  docker build -t runbook-bot:0.1.0 labs/03-hermes-triage/runbook-bot
-  kind load docker-image orders:0.1.0 hermes-triage:0.1.0 runbook-bot:0.1.0 --name $CLUSTER_NAME
-Point the image repositories in those apps' values.yaml at the bare names above
-(orders, hermes-triage, runbook-bot). GH_REPO must be your fork.
+GH_REPO must be your fork. main now requires the CI checks, so a failing
+golden-path check cannot be merged.
 EOF
