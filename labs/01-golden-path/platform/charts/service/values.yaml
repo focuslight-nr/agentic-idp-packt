@@ -1,0 +1,69 @@
+# Comments starting with "# --" are picked up by helm-docs to generate the knowledge base in Lab 2.
+
+image:
+  # -- Container image repository. Required.
+  repository: ""
+  # -- Container image tag. Required, and must not be `latest`.
+  tag: ""
+  # -- Image pull policy.
+  pullPolicy: IfNotPresent
+
+# -- Number of replicas.
+replicas: 1
+
+# -- Container command override.
+command: []
+
+# -- Container arguments.
+args: []
+
+# -- Port the container listens on.
+port: 8080
+
+service:
+  # -- Create a ClusterIP Service named after the app.
+  enabled: true
+  # -- Service port, forwarded to `port`.
+  port: 80
+
+probes:
+  # -- Enable liveness and readiness probes.
+  enabled: true
+  # -- HTTP path used by both probes.
+  path: /healthz
+
+# -- Plain environment variables, as a map of name to value.
+env: {}
+
+# -- Names of Secrets loaded as environment variables (envFrom).
+envFromSecrets: []
+
+# -- ServiceAccount the pod runs as. Agents must use a dedicated, least-privilege ServiceAccount.
+serviceAccountName: ""
+
+# -- Files rendered into a ConfigMap and mounted one by one, as a map of file name to content.
+configFiles: {}
+
+# -- Directory where `configFiles` are mounted.
+configMountPath: /config
+
+# -- Existing ConfigMaps mounted as directories, as a list of `name` and `mountPath`. Updates reach the pod without a restart.
+configMapMounts: []
+
+networkPolicy:
+  # -- Create a NetworkPolicy for the app. Agents must enable it.
+  enabled: false
+  # -- Allowed ingress rules. An empty list denies all ingress.
+  ingress: []
+  # -- Allowed egress rules. An empty list denies all egress; leave unset to not restrict egress.
+  egress:
+
+resources:
+  requests:
+    # -- CPU request.
+    cpu: 50m
+    # -- Memory request.
+    memory: 64Mi
+  limits:
+    # -- Memory limit. Required by the CI validation.
+    memory: 128Mi

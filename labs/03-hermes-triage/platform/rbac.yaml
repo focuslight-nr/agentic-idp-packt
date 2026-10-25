@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agents
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shop
+---
+# Identity of the Hermes pod itself. It has no Kubernetes permissions: it reaches the cluster only through the MCP server.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hermes
+  namespace: agents
+automountServiceAccountToken: false
+---
+# Identity of the runbook bot. It holds the GitHub token and needs no Kubernetes permissions.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: runbook-bot
+  namespace: agents
+automountServiceAccountToken: false
+---
+# Identity the Kubernetes MCP server uses on Hermes's behalf.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hermes-reader
+  namespace: agents
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hermes-reader
+  annotations:
+    platform.workshop/identity: hermes
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events", "services", "configmaps", "namespaces", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hermes-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hermes-reader
+subjects:
+  - kind: ServiceAccount
+    name: hermes-reader
+    namespace: agents

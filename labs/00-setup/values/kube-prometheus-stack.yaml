@@ -1,0 +1,36 @@
+grafana:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 6h
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 400Mi
+
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: "null"
+      group_by: ["alertname", "namespace", "pod"]
+      group_wait: 5s
+      group_interval: 30s
+      repeat_interval: 30m
+      routes:
+        - receiver: hermes
+          matchers:
+            - severity = "critical"
+            - namespace = "shop"
+    receivers:
+      - name: "null"
+      - name: hermes
+        webhook_configs:
+          - url: http://hermes.agents.svc.cluster.local/alerts
+            send_resolved: false

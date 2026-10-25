@@ -1,0 +1,173 @@
+# In-cluster LiteLLM gateway. One gateway per laptop. The virtual key alias
+# is `attendee-local`.
+#
+# The bootstrap fills `litellm-secrets` (provider key, master key, Langfuse
+# keys) and creates the `attendee-local` virtual key through the admin API.
+# The model alias `qwen3.8-27b` is pinned in `litellm-config`.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: litellm
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litellm
+  namespace: litellm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+spec:
+  selector:
+    app.kubernetes.io/name: litellm
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: litellm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: litellm
+    spec:
+      serviceAccountName: litellm
+      containers:
+        - name: litellm
+          image: ghcr.io/berriai/litellm:1.106.3
+          imagePullPolicy: IfNotPresent
+          command: ["litellm", "--config", "/config/litellm-config.yaml"]
+          ports:
+            - name: http
+              containerPort: 4000
+          env:
+            - name: DATABASE_URL
+              value: postgresql://litellm:litellm-workshop@litellm-postgres.litellm.svc.cluster.local:5432/litellm
+            - name: LITELLM_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secrets
+                  key: LITELLM_MASTER_KEY
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secrets
+                  key: OPENROUTER_API_KEY
+            - name: LANGFUSE_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secrets
+                  key: LANGFUSE_PUBLIC_KEY
+            - name: LANGFUSE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secrets
+                  key: LANGFUSE_SECRET_KEY
+            - name: LANGFUSE_HOST
+              value: http://langfuse-web.langfuse.svc.cluster.local:3000
+          livenessProbe:
+            httpGet:
+              path: /health/liveliness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: litellm-config
+---
+# LiteLLM persists keys, budgets, and model routes in Postgres.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm-postgres
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: litellm-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: litellm-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_USER
+              value: litellm
+            - name: POSTGRES_PASSWORD
+              value: litellm-workshop
+            - name: POSTGRES_DB
+              value: litellm
+          ports:
+            - name: postgres
+              containerPort: 5432
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm-postgres
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm-postgres
+spec:
+  selector:
+    app.kubernetes.io/name: litellm-postgres
+  ports:
+    - name: postgres
+      port: 5432
+---
+# The model route is rendered by install-litellm-langfuse.sh into the
+# `litellm-config` ConfigMap, so the Langfuse callback is wired only when
+# Langfuse keys are present. `qwen3.8-27b` is the stable alias every agent
+# sees; the provider model ID it maps to is the one thing to confirm.

@@ -1,0 +1,39 @@
+# Apply with: envsubst '${REPO_WEB_URL}' < labs/03-hermes-triage/alerts/prometheus-rules.yaml | kubectl apply -f -
+# envsubst must be limited to REPO_WEB_URL, otherwise it also erases the Prometheus $labels templates.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: workshop-triage
+  namespace: monitoring
+spec:
+  groups:
+    - name: workshop-triage
+      rules:
+        - alert: WorkshopPodCrashLooping
+          expr: kube_pod_container_status_waiting_reason{namespace="shop", reason="CrashLoopBackOff"} == 1
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: Container {{ $labels.container }} in pod {{ $labels.pod }} is crash looping
+            runbook_url: ${REPO_WEB_URL}/blob/main/labs/02-knowledge-base/runbooks/WorkshopPodCrashLooping.md
+
+        - alert: WorkshopPodOOMKilled
+          expr: |
+            kube_pod_container_status_last_terminated_reason{namespace="shop", reason="OOMKilled"} == 1
+            and on (namespace, pod, container)
+            increase(kube_pod_container_status_restarts_total{namespace="shop"}[5m]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: Container {{ $labels.container }} in pod {{ $labels.pod }} was OOMKilled
+            runbook_url: ${REPO_WEB_URL}/blob/main/labs/02-knowledge-base/runbooks/WorkshopPodOOMKilled.md
+
+        - alert: WorkshopContainerConfigError
+          expr: kube_pod_container_status_waiting_reason{namespace="shop", reason=~"CreateContainerConfigError|ErrImagePull|ImagePullBackOff"} == 1
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: Container {{ $labels.container }} in pod {{ $labels.pod }} cannot start ({{ $labels.reason }})
+            runbook_url: ${REPO_WEB_URL}/blob/main/labs/02-knowledge-base/runbooks/WorkshopContainerConfigError.md

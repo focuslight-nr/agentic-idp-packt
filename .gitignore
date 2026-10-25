@@ -1,0 +1,6 @@
+labs/00-setup/local/.env
+labs/00-setup/.env
+.DS_Store
+__pycache__/
+validation.jsonl
+labs/00-setup/local/.litellm-admin

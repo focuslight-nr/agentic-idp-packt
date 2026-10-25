@@ -1,0 +1,4 @@
+name: runbook-bot
+namespace: agents
+owner: platform-team
+description: Opens runbook PRs for Hermes. The only component that holds a GitHub token.

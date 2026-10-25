@@ -1,0 +1,193 @@
+# In-cluster Langfuse v2: one langfuse-server and Postgres. There is no
+# separate worker container.
+# LiteLLM sends traces here through its langfuse success callback, so each
+# attendee reads their own traces with no shared project and no signup.
+#
+# The project and its API keys are created headlessly via the LANGFUSE_INIT_*
+# env vars (the bootstrap sets them in langfuse-secrets).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: langfuse
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: langfuse
+  namespace: langfuse
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: langfuse-web
+  namespace: langfuse
+  labels:
+    app.kubernetes.io/name: langfuse-web
+spec:
+  selector:
+    app.kubernetes.io/name: langfuse-web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: langfuse-web
+  namespace: langfuse
+  labels:
+    app.kubernetes.io/name: langfuse-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: langfuse-web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: langfuse-web
+    spec:
+      serviceAccountName: langfuse
+      containers:
+        - name: langfuse-web
+          image: langfuse/langfuse:2
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              value: postgresql://langfuse:langfuse-workshop@langfuse-postgres.langfuse.svc.cluster.local:5432/langfuse
+            - name: TELEMETRY_ENABLED
+              value: "false"
+            - name: NEXTAUTH_URL
+              value: http://localhost:3000
+            - name: SALT
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: SALT
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: ENCRYPTION_KEY
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: NEXTAUTH_SECRET
+            # Headless init: creates the org, project, API keys, and admin
+            # user on first boot (values come from langfuse-secrets).
+            - name: LANGFUSE_INIT_ORG_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_INIT_ORG_NAME
+            - name: LANGFUSE_INIT_PROJECT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_INIT_PROJECT_NAME
+            - name: LANGFUSE_INIT_PROJECT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_INIT_PROJECT_PUBLIC_KEY
+            - name: LANGFUSE_INIT_PROJECT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_INIT_PROJECT_SECRET_KEY
+            - name: LANGFUSE_INIT_USER_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_INIT_USER_NAME
+            - name: LANGFUSE_INIT_USER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_INIT_USER_EMAIL
+            - name: LANGFUSE_INIT_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_INIT_USER_PASSWORD
+          ports:
+            - name: http
+              containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /api/public/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/public/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: langfuse-postgres
+  namespace: langfuse
+  labels:
+    app.kubernetes.io/name: langfuse-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: langfuse-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: langfuse-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_USER
+              value: langfuse
+            - name: POSTGRES_PASSWORD
+              value: langfuse-workshop
+            - name: POSTGRES_DB
+              value: langfuse
+          ports:
+            - name: postgres
+              containerPort: 5432
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: langfuse-postgres
+  namespace: langfuse
+  labels:
+    app.kubernetes.io/name: langfuse-postgres
+spec:
+  selector:
+    app.kubernetes.io/name: langfuse-postgres
+  ports:
+    - name: postgres
+      port: 5432

@@ -1,0 +1,29 @@
+# Agentic IDP workshop platform
+
+> Internal developer platform used in the "Building Agent-Ready Internal Developer Platforms" workshop. Every workload, including agents, ships through one golden path: a folder under labs/*/apps/<name>/, validated in CI, applied by ArgoCD. Git is the only write path.
+
+## Start here
+
+- [AGENTS.md](../../AGENTS.md): rules for agents working in this repository
+- [Knowledge base index](kb/README.md)
+
+## Generated reference
+
+- [Golden path chart reference](kb/generated/service-chart.md)
+- [Service catalog](kb/generated/service-catalog.md)
+- [Alerts and runbooks](kb/generated/alerts.md)
+- [Policies](kb/generated/policies.md)
+- [Agent identities and permissions](kb/generated/agent-identities.md)
+
+## Guides
+
+- [Onboarding a workshop environment (human or Cursor agent)](kb/guides/onboarding.md)
+- [Deploy an agent on the platform](kb/guides/deploy-an-agent.md)
+- [The platform map: how the tools link together](kb/guides/platform-map.md)
+
+## Runbooks
+
+- [Runbook template](runbooks/_template.md)
+- [WorkshopPodCrashLooping](runbooks/WorkshopPodCrashLooping.md)
+- [WorkshopContainerConfigError](runbooks/WorkshopContainerConfigError.md)
+- [WorkshopPodOOMKilled](runbooks/WorkshopPodOOMKilled.md)

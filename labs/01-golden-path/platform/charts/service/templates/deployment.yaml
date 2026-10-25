@@ -1,0 +1,92 @@
+{{- if not .Values.image.repository }}{{ fail "image.repository is required" }}{{ end }}
+{{- if or (not .Values.image.tag) (eq (toString .Values.image.tag) "latest") }}{{ fail "image.tag is required and must not be latest" }}{{ end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "service.name" . }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "service.labels" . | nindent 8 }}
+      {{- if .Values.configFiles }}
+      annotations:
+        checksum/config: {{ toYaml .Values.configFiles | sha256sum }}
+      {{- end }}
+    spec:
+      {{- with .Values.serviceAccountName }}
+      serviceAccountName: {{ . }}
+      {{- end }}
+      containers:
+        - name: {{ include "service.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.port }}
+          {{- with .Values.env }}
+          env:
+            {{- range $name, $value := . }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          {{- with .Values.envFromSecrets }}
+          envFrom:
+            {{- range . }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          {{- end }}
+          {{- if .Values.probes.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if or .Values.configFiles .Values.configMapMounts }}
+          volumeMounts:
+            {{- range $file, $_ := .Values.configFiles }}
+            - name: config
+              mountPath: {{ $.Values.configMountPath }}/{{ $file }}
+              subPath: {{ $file }}
+            {{- end }}
+            {{- range .Values.configMapMounts }}
+            - name: cm-{{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: true
+            {{- end }}
+          {{- end }}
+      {{- if or .Values.configFiles .Values.configMapMounts }}
+      volumes:
+        {{- if .Values.configFiles }}
+        - name: config
+          configMap:
+            name: {{ include "service.name" . }}
+        {{- end }}
+        {{- range .Values.configMapMounts }}
+        - name: cm-{{ .name }}
+          configMap:
+            name: {{ .name }}
+        {{- end }}
+      {{- end }}

@@ -1,0 +1,4 @@
+name: orders
+namespace: shop
+owner: platform-team
+description: The shop's orders service. Shipped in Lab 1, triaged by Hermes in Lab 3.

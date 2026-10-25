@@ -1,0 +1,44 @@
+# Apply with: envsubst '${REPO_URL}' < labs/01-golden-path/platform/argocd/applicationset.yaml | kubectl apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: golden-path
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: ${REPO_URL}
+        revision: HEAD
+        # The git generator polls the repo to discover new app.yaml files.
+        # Without this a brand-new app (e.g. Hermes's first deploy) would wait for
+        # the default 180s poll before it even got an Application. 15s keeps the
+        # "merge to deploy in about a minute" promise honest.
+        requeueAfterSeconds: 15
+        files:
+          - path: "labs/*/apps/*/app.yaml"
+  template:
+    metadata:
+      name: "{{ .name }}"
+      labels:
+        platform.workshop/owner: "{{ .owner }}"
+    spec:
+      project: default
+      source:
+        repoURL: ${REPO_URL}
+        targetRevision: HEAD
+        path: labs/01-golden-path/platform/charts/service
+        helm:
+          releaseName: "{{ .name }}"
+          valueFiles:
+            - "../../../../../{{ .path.path }}/values.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .namespace }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

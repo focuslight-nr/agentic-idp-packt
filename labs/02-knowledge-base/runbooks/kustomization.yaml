@@ -1,0 +1,13 @@
+# Publishes the runbooks as the `runbooks` ConfigMap, so Hermes reads them from Git without internet access.
+# Add every new runbook to `files`.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: agents
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: runbooks
+    files:
+      - WorkshopPodCrashLooping.md
+      - WorkshopPodOOMKilled.md
+      - WorkshopContainerConfigError.md

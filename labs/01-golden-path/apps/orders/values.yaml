@@ -1,0 +1,27 @@
+# The `orders` service: a tiny Python HTTP app (see orders.py + Dockerfile in
+# this folder). In the workshop it ships through the golden path like every
+# other app; the Lab 3 scenarios break it through PRs the same way a real bad
+# change would.
+image:
+  repository: agentic-idp/orders
+  tag: "0.1.0"
+port: 8080
+# By default the app runs with no arguments (its CMD). The `command` override
+# below exists so the Lab 3 crashloop scenario has a real entrypoint to point
+# at a bogus flag on; it is identical to the image CMD when healthy.
+command:
+  - python
+  - /app/orders.py
+env:
+  # The connection string. The bad-config scenario replaces this with an
+  # envFromSecrets reference to a Secret that does not exist, which is what
+  # stops the container from starting.
+  ORDER_DB: "orders@localhost:5432/orders"
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    # Comfortably above the app's ~10 MiB working set. The OOM scenario lowers
+    # this to 6Mi, which is below the app's baseline and so produces OOMKilled.
+    memory: 64Mi

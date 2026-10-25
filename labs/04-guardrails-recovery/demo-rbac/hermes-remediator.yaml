@@ -1,0 +1,30 @@
+# Deliberately over-broad role, applied only during step 1 to show that Kyverno still blocks the agent when RBAC is misconfigured.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hermes-remediator
+  annotations:
+    platform.workshop/identity: hermes
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces", "configmaps"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hermes-remediator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hermes-remediator
+subjects:
+  - kind: ServiceAccount
+    name: hermes-reader
+    namespace: agents

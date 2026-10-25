@@ -1,0 +1,37 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: deny-agent-direct-changes
+  annotations:
+    policies.kyverno.io/title: Agents change the cluster only through Git
+    policies.kyverno.io/description: Blocks any create, update, or delete made directly by an agent identity, even if RBAC allows it. Agent fixes go through a PR and ArgoCD.
+spec:
+  background: false
+  rules:
+    - name: block-agent-writes
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+                - Deployment
+                - ReplicaSet
+                - StatefulSet
+                - DaemonSet
+                - Service
+                - ConfigMap
+                - Secret
+                - Namespace
+                - NetworkPolicy
+              operations: ["CREATE", "UPDATE", "DELETE"]
+            subjects:
+              - kind: ServiceAccount
+                name: hermes
+                namespace: agents
+              - kind: ServiceAccount
+                name: hermes-reader
+                namespace: agents
+      validate:
+        failureAction: Enforce
+        message: "Agents cannot change the cluster directly. Propose the change as a PR; ArgoCD applies it after a human approves."
+        deny: {}
