@@ -60,6 +60,10 @@ spec:
               value: "false"
             - name: NEXTAUTH_URL
               value: http://localhost:3000
+            # Next.js binds to $HOSTNAME, which Kubernetes sets to the pod name.
+            # That listens only on the pod IP, so kubectl port-forward is refused.
+            - name: HOSTNAME
+              value: 0.0.0.0
             - name: SALT
               valueFrom:
                 secretKeyRef:
@@ -77,6 +81,11 @@ spec:
                   key: NEXTAUTH_SECRET
             # Headless init: creates the org, project, API keys, and admin
             # user on first boot (values come from langfuse-secrets).
+            # Langfuse skips the whole init unless the org and project IDs are set.
+            - name: LANGFUSE_INIT_ORG_ID
+              value: workshop
+            - name: LANGFUSE_INIT_PROJECT_ID
+              value: workshop
             - name: LANGFUSE_INIT_ORG_NAME
               valueFrom:
                 secretKeyRef:
