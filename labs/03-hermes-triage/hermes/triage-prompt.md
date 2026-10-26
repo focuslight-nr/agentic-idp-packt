@@ -35,15 +35,17 @@ Emit a FIX block **only** when the broken app is Git-managed under `labs/*/apps/
 
 Omit the FIX block when the workload was applied outside Git (for example a busybox pod created only in the cluster), or when the right response is security findings only — say so in section 4 instead.
 
-Required shape (markdown fences around the full file, not a diff):
+You cannot read the repository, so list **only the keys you change**, nested from the top of the file. Another service merges them into the current `values.yaml`: nested keys merge, a list or value you give replaces the old one, and `null` removes a key. Every key you leave out stays as it is. The chart's main keys are `image`, `port`, `command`, `args`, `env`, `envFromSecrets`, and `resources`.
+
+Required shape (the shape only; use the real path and your real keys):
 
 <<<FIX
 path: labs/01-golden-path/apps/orders/values.yaml
 
 ```yaml
-image:
-  repository: example
-  tag: "0.1.0"
+parentKey:
+  childKeyYouChange: newValue
+keyYouRemove: null
 ```
 FIX>>>
 

@@ -48,7 +48,7 @@ The identities, the alert rules, and the Secrets are already applied in your env
 - **Egress:** a prompt injection can ask the agent to send data somewhere. The network policy makes sure there is nowhere to send it.
 - **Alert storms:** the bridge triages each alert once per 15 minutes, so a flapping alert cannot burn the budget.
 - **PRs via a narrow bot, not Hermes:** Hermes never holds a GitHub token and has no egress to GitHub. The bridge posts structured results to runbook-bot, which opens two reviewable PRs (triage + fix). Injection heuristics flag suspicious text in the PR body; humans still decide what merges.
-- **Fix allowlist:** fix PRs may only replace an existing `labs/*/apps/*/values.yaml`. Anything else is rejected.
+- **Fix allowlist:** fix PRs may only change an existing `labs/*/apps/*/values.yaml`. Hermes proposes only the keys it changes, and runbook-bot merges them into the file, so every other key stays. Anything else is rejected.
 
 ## Steps
 

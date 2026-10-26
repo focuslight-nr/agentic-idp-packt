@@ -20,6 +20,11 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from io import StringIO
+
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.error import YAMLError
 
 PORT = int(os.environ.get("PORT", "8080"))
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
@@ -132,6 +137,78 @@ def get_file(path: str, ref: str) -> tuple[str, str] | None:
     return base64.b64decode(current["content"]).decode(), current["sha"]
 
 
+def _tail_slot(parent, key) -> tuple[dict, object, int]:
+    """Locate the comment lines after parent[key].
+
+    ruamel stores a comment written above a key as the trailing comment of
+    whatever comes before it, so these lines describe the next key.
+    """
+    value = parent[key]
+    if isinstance(value, (CommentedMap, CommentedSeq)) and value:
+        return _tail_slot(value, list(value)[-1] if isinstance(value, CommentedMap) else len(value) - 1)
+    return parent.ca.items, key, 0 if isinstance(parent, CommentedSeq) else 2
+
+
+def _get_tail(parent, key):
+    items, slot_key, index = _tail_slot(parent, key)
+    return items.get(slot_key, [None] * 4)[index]
+
+
+def _set_tail(parent, key, token) -> None:
+    items, slot_key, index = _tail_slot(parent, key)
+    items.setdefault(slot_key, [None] * 4)[index] = token
+
+
+def _merge_keys(target: CommentedMap, patch: dict) -> None:
+    for key, value in patch.items():
+        if isinstance(value, dict) and isinstance(target.get(key), dict):
+            _merge_keys(target[key], value)
+            continue
+        tail = _get_tail(target, key) if key in target else None
+        if value is None:
+            if key not in target:
+                continue
+            keys = list(target)
+            position = keys.index(key)
+            del target[key]
+            target.ca.items.pop(key, None)
+            if position:
+                _set_tail(target, keys[position - 1], tail)
+        else:
+            target[key] = value
+            if tail is not None:
+                _set_tail(target, key, tail)
+
+
+def merge_values(current: str, proposed: str) -> str:
+    """Merge Hermes's proposed keys into the current values.yaml.
+
+    Hermes cannot read the repository, so it proposes only the keys it changes.
+    Nested mappings merge, lists and scalars replace, and null removes a key.
+    Comments and quoting in the current file are kept.
+    """
+    rt = YAML()
+    rt.preserve_quotes = True
+    rt.indent(mapping=2, sequence=4, offset=2)
+    rt.width = 4096
+    try:
+        doc = rt.load(current)
+        patch = rt.load(proposed)
+    except YAMLError as error:
+        raise Rejected(f"proposed fix is not valid YAML: {error}") from error
+    if not isinstance(doc, dict):
+        raise Rejected("target file is not a YAML mapping")
+    if not isinstance(patch, dict) or not patch:
+        raise Rejected("proposed fix must be a YAML mapping of the keys to change")
+    _merge_keys(doc, patch)
+    out = StringIO()
+    rt.dump(doc, out)
+    merged = out.getvalue()
+    if merged == current:
+        raise Rejected("proposed fix does not change the file")
+    return merged
+
+
 def open_triage_pr(alertname: str, pod: str, namespace: str, report: str, entry: str) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     base, branch = create_branch(f"hermes-triage/{alertname}", stamp)
@@ -205,19 +282,20 @@ def open_fix_pr(alertname: str, pod: str, path: str, content: str, report: str) 
     if not content.strip() or len(content) > MAX_VALUES_CHARS:
         raise Rejected(f"values content must be 1-{MAX_VALUES_CHARS} characters")
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    base, branch = create_branch(f"hermes-fix/{alertname}", stamp)
-
+    base = github("GET", "")["default_branch"]
     existing = get_file(path, base)
     if existing is None:
         raise Rejected(f"target file does not exist: {path}")
-    _old, sha = existing
+    current, sha = existing
+    merged = merge_values(current, content)
 
     warnings = scan_for_injection(content + "\n" + report)
     if warnings:
         log.warning("fix PR content flagged: %s", ", ".join(warnings))
 
-    put_file(path, branch, f"fix: Hermes proposal for {alertname}", content, sha=sha)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    base, branch = create_branch(f"hermes-fix/{alertname}", stamp)
+    put_file(path, branch, f"fix: Hermes proposal for {alertname}", merged, sha=sha)
 
     # Keep the fix PR short: summary-style context only (full transcript stays out).
     context = report.strip()
@@ -227,7 +305,9 @@ def open_fix_pr(alertname: str, pod: str, path: str, content: str, report: str) 
     body = warning_preamble(warnings) + (
         f"## Proposed fix from Hermes\n\n"
         f"Alert `{alertname}` on pod `{pod}`.\n\n"
-        f"This PR replaces `{path}` with the contents Hermes proposed after triage.\n\n"
+        f"This PR merges the keys Hermes proposed after triage into `{path}`. "
+        "Every other key is unchanged.\n\n"
+        f"### Proposed keys\n\n```yaml\n{content.strip()}\n```\n\n"
         "### Triage report\n\n"
         f"{context}\n\n"
         "---\n\n"

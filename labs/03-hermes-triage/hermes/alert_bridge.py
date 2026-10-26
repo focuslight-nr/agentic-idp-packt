@@ -20,7 +20,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 PORT = int(os.environ.get("PORT", "8080"))
-HERMES_CMD = shlex.split(os.environ.get("HERMES_CMD", "hermes chat -q"))
+# -Q prints only Hermes's final answer: no prompt echo, tool previews, or Markdown rendering.
+HERMES_CMD = shlex.split(os.environ.get("HERMES_CMD", "hermes chat -Q -q"))
 TRIAGE_TIMEOUT_SECONDS = int(os.environ.get("TRIAGE_TIMEOUT_SECONDS", "300"))
 DEDUP_WINDOW_SECONDS = int(os.environ.get("DEDUP_WINDOW_SECONDS", "900"))
 PROMPT_TEMPLATE = Path(os.environ.get("PROMPT_TEMPLATE", "/app/triage-prompt.md")).read_text()
@@ -45,7 +46,7 @@ PLACEHOLDER_ENTRY = re.compile(
 VALUES_PATH = re.compile(r"^labs/[0-9]{2}-[a-z0-9-]+/apps/[a-z0-9-]+/values\.yaml$")
 # Final answer usually starts at the last "1. Summary" (prompt text has an earlier copy).
 REPORT_START = re.compile(
-    r"(?m)^(?:#{1,3}\s*)?1\.\s*\*?\*?Summary\*?\*?(?!\s*:\s*one sentence)",
+    r"(?m)^(?:#{1,3}\s*)?1\.\s*(?:\*\*)?Summary(?:\*\*)?(?!\*|\s*:\s*one sentence)",
 )
 SESSION_FOOTER = re.compile(r"(?m)^Resume this session with:\s*$")
 
@@ -130,6 +131,14 @@ def pick_runbook_entry(report: str) -> str | None:
     return None
 
 
+def fix_body(match: re.Match) -> str:
+    return next((g for g in match.groups()[1:] if g is not None), "").strip()
+
+
+# The prompt shows the FIX shape with an example body; a copy of it is never a real fix.
+PROMPT_EXAMPLE_FIXES = {fix_body(m) for m in FIX_BLOCK.finditer(PROMPT_TEMPLATE)}
+
+
 def pick_fix(report: str) -> tuple[str, str] | None:
     """Return (path, values_yaml) from the last valid FIX block, or None."""
     matches = list(FIX_BLOCK.finditer(report))
@@ -137,10 +146,13 @@ def pick_fix(report: str) -> tuple[str, str] | None:
         log.warning("report contains <<<FIX but no parseable FIX block (check fences/path)")
     for match in reversed(matches):
         path = match.group(1).strip()
-        content = next((g for g in match.groups()[1:] if g is not None), "")
-        content = content.strip() + "\n"
+        body = fix_body(match)
+        content = body + "\n"
         if "<" in path or ">" in path:
             log.warning("ignoring FIX block with placeholder path: %s", path)
+            continue
+        if body in PROMPT_EXAMPLE_FIXES:
+            log.warning("ignoring FIX block copied from the prompt example")
             continue
         if VALUES_PATH.match(path) and content.strip():
             return path, content
@@ -182,6 +194,9 @@ def worker() -> None:
             (REPORTS_DIR / name).write_text(report)
             log.info("triage report (%d→%d chars):\n%s", len(raw), len(report), report)
 
+            if not report:
+                log.warning("hermes returned no report; skipping PRs")
+                continue
             if not RUNBOOK_BOT_URL:
                 continue
 

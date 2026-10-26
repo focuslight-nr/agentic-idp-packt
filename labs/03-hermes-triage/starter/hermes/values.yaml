@@ -7,7 +7,7 @@ serviceAccountName: hermes
 envFromSecrets:
   - hermes-llm
 env:
-  HERMES_CMD: "hermes chat -q"
+  HERMES_CMD: "hermes chat -Q -q"
   DEDUP_WINDOW_SECONDS: "900"
   RUNBOOK_DIR: /app/runbooks
   # Base URL only; alert_bridge posts to /triage-pr and /fix-pr.

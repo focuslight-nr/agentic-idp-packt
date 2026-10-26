@@ -1,5 +1,6 @@
 FROM python:3.12-slim
 
+RUN pip install --no-cache-dir ruamel.yaml==0.19.1
 RUN useradd --create-home --uid 10001 bot
 WORKDIR /app
 COPY bot.py /app/
