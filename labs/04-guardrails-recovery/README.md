@@ -106,11 +106,10 @@ Keep working with the Hermes you deployed in Lab 3. Check each of its guardrails
    The **real** kill switch blocks the agent's virtual key on the LiteLLM gateway, which stops it everywhere at once, budget included. Here each of you is your own gateway, so you run it against your in-cluster LiteLLM (the key's alias is `attendee-local`):
 
    ```bash
-   kubectl -n litellm port-forward svc/litellm 4000:4000 &
    set -a
    source labs/00-setup/local/.litellm-admin
    set +a
-   LITELLM_ADMIN_URL=http://localhost:4000 ./labs/04-guardrails-recovery/scripts/kill-switch.sh local --block-key
+   LITELLM_ADMIN_URL=http://litellm.localhost ./labs/04-guardrails-recovery/scripts/kill-switch.sh local --block-key
    ```
 
    The script resolves the key by alias `attendee-local` through the gateway's `/key/list`, then calls `/key/block`. Bootstrap writes the admin key to `labs/00-setup/local/.litellm-admin`. In production this is one command against one central gateway, for one key at a time.

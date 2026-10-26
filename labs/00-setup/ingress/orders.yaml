@@ -1,0 +1,24 @@
+# API-gateway Ingress for the `orders` service, at
+# http://orders.localhost. Applied by labs/00-setup/apply-post-lab2.sh so the
+# golden-path demo has a browser/curl URL too, not just a port-forward.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orders
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: orders
+    app.kubernetes.io/managed-by: golden-path
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: orders.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: orders
+                port:
+                  number: 80

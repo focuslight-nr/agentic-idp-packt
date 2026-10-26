@@ -1,0 +1,25 @@
+# API-gateway Ingress for the in-cluster LiteLLM gateway, at
+# http://litellm.localhost. Serves the gateway's /v1 API and /key admin
+# endpoints at the native root path (no prefix rewrite).
+# Applied by labs/00-setup/install-litellm-langfuse.sh.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: litellm
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/managed-by: golden-path
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: litellm.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: litellm
+                port:
+                  number: 4000

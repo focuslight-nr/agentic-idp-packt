@@ -1,0 +1,25 @@
+# API-gateway Ingress for ArgoCD, at http://argocd.localhost.
+# One Ingress per app namespace (a K8s Ingress can only route to Services in
+# its own namespace). macOS resolves *.localhost to 127.0.0.1, so no
+# /etc/hosts edits are needed. Applied by labs/00-setup/install-platform.sh.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/managed-by: golden-path
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: argocd.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80

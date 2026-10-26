@@ -59,7 +59,9 @@ spec:
             - name: TELEMETRY_ENABLED
               value: "false"
             - name: NEXTAUTH_URL
-              value: http://localhost:3000
+              # Must be the public URL of the app (the API-gateway host), not
+              # localhost:3000 -- NextAuth redirects there after login.
+              value: http://langfuse.localhost
             # Next.js binds to $HOSTNAME, which Kubernetes sets to the pod name.
             # That listens only on the pod IP, so kubectl port-forward is refused.
             - name: HOSTNAME

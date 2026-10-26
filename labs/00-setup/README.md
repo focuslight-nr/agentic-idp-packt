@@ -43,14 +43,25 @@ Create the cluster with the bootstrap in [`local/`](local/). If a laptop breaks,
 
    You should see `orders` and `runbooks`, both `Synced` and `Healthy`.
 
+## The API gateway
+
+Every web surface is on host port 80, routed by host name (macOS resolves
+`*.localhost` to `127.0.0.1` automatically):
+
+| URL | What |
+|---|---|
+| http://argocd.localhost | Argo CD UI |
+| http://litellm.localhost | LiteLLM gateway (`/v1`, `/key`, `/health/readiness`) |
+| http://langfuse.localhost | Langfuse UI (project `workshop`, the bootstrap's admin user) |
+| http://orders.localhost | the `orders` service |
+
 ## ArgoCD UI
 
 ```bash
-kubectl -n argocd port-forward svc/argocd-server 8080:80
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
 ```
 
-Log in at http://localhost:8080 as `admin`.
+Log in at http://argocd.localhost as `admin`.
 
 ## If something is broken
 

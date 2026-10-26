@@ -27,7 +27,7 @@ The service is `orders`, in the `shop` namespace. It stays with you for the whol
 ## Guided demo
 
 1. Walk through `apps/orders/` and the chart.
-2. Show `orders` in Argo CD (`kubectl -n argocd port-forward svc/argocd-server 8080:80`).
+2. Show `orders` in Argo CD at http://argocd.localhost (it also serves `orders` at http://orders.localhost).
 3. Change `orders` in a pull request (for example `ORDER_DB`), and show the `golden-path-ci` check, the merge, and the sync. Argo CD polls every 30 seconds. A hard refresh skips the wait: `kubectl -n argocd annotate application orders argocd.argoproj.io/refresh=hard --overwrite`.
 
 ## Try it (optional, non-blocking)

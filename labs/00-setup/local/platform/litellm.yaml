@@ -50,7 +50,13 @@ spec:
       serviceAccountName: litellm
       containers:
         - name: litellm
-          image: ghcr.io/berriai/litellm:1.106.3
+          # Pinned to the last release whose `langfuse` callback still speaks the
+          # langfuse SDK 2.x REST ingestion route. From 1.104.0 the callback moved
+          # to SDK 4.x, which ships OTLP to /api/public/otel and needs a
+          # self-hosted Langfuse server >= 3.63.0. This workshop runs the in-cluster
+          # `langfuse/langfuse:2` (see platform/langfuse.yaml), so 1.106.3 drops
+          # every trace. 1.103.9 is the newest tag that matches the v2 server.
+          image: ghcr.io/berriai/litellm:1.103.9
           imagePullPolicy: IfNotPresent
           command: ["litellm", "--config", "/config/litellm-config.yaml"]
           ports:
