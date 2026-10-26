@@ -1,4 +1,0 @@
-name: hermes
-namespace: agents
-owner: platform-team
-description: Hermes triage agent. Receives critical alerts, investigates read-only, and reports the root cause.
