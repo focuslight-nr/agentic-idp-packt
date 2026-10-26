@@ -42,7 +42,7 @@ flowchart TB
   HER -->|MCP tools only| MCP
   MCP -->|as hermes-reader, read-only| KUB
   KUB -.->|denies agent direct writes| KUB
-  HER -->|qwen3.8-27b, one virtual key| LLM
+  HER -->|model alias triage, one virtual key| LLM
   LLM -->|callback| LANG
   HER -->|report + proposed fix| BOT
   BOT -->|triage PR + fix PR| MAIN
@@ -78,7 +78,7 @@ One line each, in the order they appear.
 | **Prometheus + Alertmanager** | Detect the failure (crash loop, OOM, bad config) and route it: Prometheus fires, Alertmanager posts the alert to Hermes. | Lab 3 |
 | **Hermes** | The agent. Built on [hermes-agent](https://github.com/NousResearch/hermes-agent) from Nous Research: a prompt in, tool calls out. It holds **no** cluster token and **no** GitHub token — only the LiteLLM key. It never merges anything. | Lab 3 |
 | **k8s-mcp** | The Model Context Protocol server that is Hermes's only door to Kubernetes. Runs read-only (`read_only = true` in its config) and acts as `hermes-reader`: it can list pods, read events and logs — it cannot delete, and cannot read Secrets. | Lab 3 |
-| **LiteLLM** | The model gateway, running inside your cluster. Hermes calls one alias (`qwen3.8-27b`) with one virtual key that has a budget, a rate limit, and a fallback. It is also the **real kill switch**: block the key and every model call stops, everywhere, instantly. | Lab 3 (calls), Lab 4 (kill switch) |
+| **LiteLLM** | The model gateway, running inside your cluster. Hermes calls one alias (`triage`) with one virtual key that has a budget, a rate limit, and a fallback. It is also the **real kill switch**: block the key and every model call stops, everywhere, instantly. | Lab 3 (calls), Lab 4 (kill switch) |
 | **runbook-bot** | A tiny bot that holds the only GitHub token. It opens the two PRs Hermes's output becomes (triage report + proposed fix) and can only write a fix to an existing `labs/*/apps/*/values.yaml`. It cannot merge. | Lab 3 |
 | **Langfuse** | The observability side: every model call is traced — prompt, tool calls, tokens, cost. Read it in the observability section to see what a triage actually cost and did. | Lab 3 (observability) |
 | **Kyverno** | A policy engine at the Kubernetes API server, admission-time. The workshop policy (`deny-agent-direct-changes`) says: agent identities may not create, update, or delete anything directly. RBAC can be misconfigured; Kyverno is the second layer that still says no. | Lab 4 |

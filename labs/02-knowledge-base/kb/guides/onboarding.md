@@ -42,7 +42,7 @@ The final line is the summary: `{"check":"summary","status":"pass","failures":0}
 `.env` is the only file with secrets. From `.env.example`:
 
 - `REPO_URL` / `REPO_WEB_URL` — your **fork** (not the upstream). Argo CD reads the fork, and the runbook links in alerts point at it.
-- `OPENROUTER_API_KEY` — your capped provider key. The bootstrap installs LiteLLM in-cluster and routes the model alias `qwen3.8-27b` through it; the agent only ever sees its own virtual key. This is the one secret the human must supply.
+- `OPENROUTER_API_KEY` — your capped provider key. The bootstrap installs LiteLLM in-cluster and routes the model alias `triage` through it; the agent only ever sees its own virtual key. This is the one secret the human must supply.
 - `LITELLM_MASTER_KEY` — optional. Gateway admin key used by the kill switch; the bootstrap generates and stores it if empty.
 - `SKIP_LANGFUSE` — optional. Set `true` to skip the in-cluster Langfuse when the laptop is short on memory.
 - `GITHUB_TOKEN` — a fine-grained PAT scoped to **your fork only**, with *Contents: Read & Write* and *Pull requests: Read & Write*. This is what `runbook-bot` uses. It is never the agent's token and it expires after the workshop.

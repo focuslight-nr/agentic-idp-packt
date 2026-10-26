@@ -159,7 +159,7 @@ cat <<EOF
 ==> Local cluster is ready (post-Lab 2 state + in-cluster LiteLLM${LANGFUSE_NOTE}).
 
 Smoke gate: $SMOKE_STATUS
-  gateway:  http://litellm.litellm.svc.cluster.local:4000/v1  (alias qwen3.8-27b)
+  gateway:  http://litellm.litellm.svc.cluster.local:4000/v1  (alias triage)
   host:     http://litellm.localhost/v1  (via the API gateway)
   hermes:   agents/hermes-llm (virtual key alias attendee-local)
   kill:     kill-switch.sh local --block-key uses LITELLM_MASTER_KEY (see .litellm-admin)

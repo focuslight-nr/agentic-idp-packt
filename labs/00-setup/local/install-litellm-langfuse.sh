@@ -13,7 +13,7 @@
 #                         when the laptop is short on memory. Default: install it.
 #
 # The model alias is pinned below (LITELLM_MODEL_ID). The labs only see
-# `qwen3.8-27b`.
+# `triage`.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,7 +24,7 @@ PLATFORM_DIR="$SCRIPT_DIR/platform"
 # The stable alias every agent sees is fixed; the provider model ID behind it
 # is the OpenRouter route for the workshop model. The labs only ever name the
 # alias, so swapping the model is a one-line change here, never in an app.
-LITELLM_MODEL_ALIAS="${LITELLM_MODEL_ALIAS:-qwen3.8-27b}"
+LITELLM_MODEL_ALIAS="${LITELLM_MODEL_ALIAS:-triage}"
 LITELLM_MODEL_ID="${LITELLM_MODEL_ID:-openrouter/z-ai/glm-5.2}"
 
 # --- Required context --------------------------------------------------------

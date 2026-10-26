@@ -17,7 +17,7 @@ flowchart LR
     Alertmanager -->|"webhook /alerts"| Bridge["alert_bridge.py in the Hermes pod"]
     Runbook["Runbooks in Git"] -->|"ArgoCD: runbooks ConfigMap"| Bridge
     Bridge -->|"one-shot prompt"| Hermes["Hermes agent, MCP tools only"]
-    Hermes -->|"qwen3.8-27b, in-cluster LiteLLM"| LiteLLM
+    Hermes -->|"model alias triage, in-cluster LiteLLM"| LiteLLM
     LiteLLM --> Langfuse
     Hermes -->|"MCP tools"| MCP["k8s-mcp, read-only"]
     MCP -->|"hermes-reader ServiceAccount"| API["Kubernetes API"]

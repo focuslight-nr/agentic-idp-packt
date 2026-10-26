@@ -72,7 +72,7 @@ configFiles:
       provider: custom
       base_url: ${OPENAI_BASE_URL}
       api_key: ${OPENAI_API_KEY}
-      default: qwen3.8-27b
+      default: triage
     mcp_servers:
       kubernetes:
         url: http://k8s-mcp.agents.svc.cluster.local/mcp

@@ -43,7 +43,7 @@ Do not guess tokens. The golden-path rules in `AGENTS.md` still apply.
 
 - **LiteLLM and Langfuse in the cluster.** The gateway is `litellm.litellm.svc.cluster.local:4000` in-cluster, and `http://litellm.localhost` through the API gateway. Langfuse v2 is `langfuse-web.langfuse.svc.cluster.local:3000` in-cluster, and `http://langfuse.localhost` through the gateway. The bootstrap creates the Langfuse project and the `attendee-local` virtual key. Hermes only sees that virtual key. Set `SKIP_LANGFUSE=true` in `.env` to skip Langfuse when the laptop is short on memory.
 - **Hermes egress.** The network policy reaches LiteLLM with a namespace and pod selector on port 4000.
-- **Model smoke gate.** `spike/smoke-hermes.sh` calls `qwen3.8-27b` through the gateway with a forced tool call. `FAIL` means the cluster is not ready for Lab 3. Check `OPENROUTER_API_KEY`.
+- **Model smoke gate.** `spike/smoke-hermes.sh` calls the `triage` alias through the gateway with a forced tool call. `FAIL` means the cluster is not ready for Lab 3. Check `OPENROUTER_API_KEY`.
 
 ## Layout
 

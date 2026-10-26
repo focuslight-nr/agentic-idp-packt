@@ -12,7 +12,7 @@ set -euo pipefail
 
 KEY="${1:?usage: smoke-hermes.sh <attendee-key> [litellm-url]}"
 LITELLM_URL="${2:-${LITELLM_ADMIN_URL:-http://localhost:4000}}"
-MODEL="${LITELLM_SMOKE_MODEL:-qwen3.8-27b}"
+MODEL="${LITELLM_SMOKE_MODEL:-triage}"
 
 response="$(
   curl -fsS -m 60 "$LITELLM_URL/v1/chat/completions" \

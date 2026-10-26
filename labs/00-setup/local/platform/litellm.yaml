@@ -3,7 +3,7 @@
 #
 # The bootstrap fills `litellm-secrets` (provider key, master key, Langfuse
 # keys) and creates the `attendee-local` virtual key through the admin API.
-# The model alias `qwen3.8-27b` is pinned in `litellm-config`.
+# The model alias `triage` is pinned in `litellm-config`.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -175,5 +175,5 @@ spec:
 ---
 # The model route is rendered by install-litellm-langfuse.sh into the
 # `litellm-config` ConfigMap, so the Langfuse callback is wired only when
-# Langfuse keys are present. `qwen3.8-27b` is the stable alias every agent
+# Langfuse keys are present. `triage` is the stable alias every agent
 # sees; the provider model ID it maps to is the one thing to confirm.
