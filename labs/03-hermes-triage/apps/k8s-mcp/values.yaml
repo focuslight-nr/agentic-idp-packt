@@ -1,0 +1,55 @@
+image:
+  # containers/kubernetes-mcp-server (the Kubernetes MCP server). Pinned and
+  # multi-arch (amd64 + arm64). Serves Streamable HTTP at /mcp when `port` is
+  # set in its config.
+  repository: quay.io/containers/kubernetes_mcp_server
+  tag: "v0.0.69"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+# The binary only takes --config / --config-dir; port and read_only are TOML
+# options, not CLI flags. Point it at the mounted config below.
+args:
+  - "--config"
+  - "/config/config.toml"
+
+port: 8080
+# Service exposes 80 -> 8080 (like every other golden-path app), so agents
+# call the documented URL http://k8s-mcp.agents.svc.cluster.local/mcp without
+# a port. The egress rule still allows 8080 because NetworkPolicy matches the
+# destination after DNAT (pod IP, targetPort).
+service:
+  enabled: true
+  port: 80
+
+# No /healthz on this server (it serves /mcp), so skip the HTTP probes. The
+# Deployment restarts a crashed container; for the workshop that is enough.
+probes:
+  enabled: false
+
+# Runs as the read-only hermes-reader ServiceAccount (platform/rbac.yaml), so
+# the MCP layer cannot grant more than RBAC even if misconfigured.
+serviceAccountName: hermes-reader
+
+configFiles:
+  config.toml: |
+    # HTTP mode on 8080, served at /mcp (Streamable HTTP).
+    port = "8080"
+    bind_address = "0.0.0.0"
+    # Read-only: the only access Hermes gets to the cluster.
+    read_only = true
+    # The tools Hermes uses for triage.
+    toolsets = ["core", "config", "helm", "kubevirt"]
+    # Agents reach this server through the in-cluster Service DNS, not a
+    # trusted local hostname, so the MCP SDK's DNS-rebinding check would drop
+    # every real request. The cluster NetworkPolicy already limits egress to
+    # k8s-mcp to the agent pods, so the rebinding check is unnecessary here.
+    disable_localhost_protection = true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
