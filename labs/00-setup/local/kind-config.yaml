@@ -3,4 +3,12 @@ apiVersion: kind.x-k8s.io/v1alpha4
 name: agentic-idp
 nodes:
   - role: control-plane
+    # The workshop's single API gateway (ingress-nginx, NodePort 30080) is
+    # reached on host port 80. kind maps host:80 -> node:30080; the NodePort
+    # then load-balances to the ingress-nginx controller pod on any node.
+    # Mapped on the control-plane only so two nodes do not both claim host:80.
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 80
+        protocol: TCP
   - role: worker

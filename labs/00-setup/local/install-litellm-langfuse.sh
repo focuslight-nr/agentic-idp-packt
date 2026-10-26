@@ -17,15 +17,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETUP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLATFORM_DIR="$SCRIPT_DIR/platform"
 
 # --- Model route (the one place to change) ----------------------------------
 # The stable alias every agent sees is fixed; the provider model ID behind it
-# is the OpenRouter route for the workshop model. Confirmed against the
-# public OpenRouter model list (openrouter.ai/api/v1/models): `qwen3.8-27b`
-# is served as `qwen/qwen3.8-27b`.
+# is the OpenRouter route for the workshop model. The labs only ever name the
+# alias, so swapping the model is a one-line change here, never in an app.
 LITELLM_MODEL_ALIAS="${LITELLM_MODEL_ALIAS:-qwen3.8-27b}"
-LITELLM_MODEL_ID="${LITELLM_MODEL_ID:-openrouter/qwen/qwen3.8-27b}"
+LITELLM_MODEL_ID="${LITELLM_MODEL_ID:-openrouter/z-ai/glm-5.2}"
 
 # --- Required context --------------------------------------------------------
 if ! kubectl get ns >/dev/null 2>&1; then
@@ -79,6 +79,8 @@ if [[ "$INSTALL_LANGFUSE" == "true" ]]; then
   kubectl -n langfuse rollout status deploy/langfuse-postgres --timeout=240s
   kubectl -n langfuse rollout status deploy/langfuse-web --timeout=300s
   echo "==> Langfuse project 'workshop' created headlessly (LANGFUSE_INIT_*)"
+  echo "==> Exposing Langfuse at http://langfuse.localhost (API gateway)"
+  kubectl apply -f "$SETUP_DIR/ingress/langfuse.yaml"
 fi
 
 # --- LiteLLM secrets + config ------------------------------------------------
@@ -113,31 +115,34 @@ kubectl -n litellm create configmap litellm-config \
 
 # --- LiteLLM ------------------------------------------------------------------
 echo "==> Installing LiteLLM"
+# LiteLLM reads its config once at startup. On a re-run with a changed
+# model route or callback, the ConfigMap is updated but the running process
+# keeps the old in-memory config, so roll the Deployment when it exists.
+if kubectl -n litellm get deploy litellm >/dev/null 2>&1; then
+  kubectl -n litellm rollout restart deploy/litellm
+fi
 kubectl apply -f "$PLATFORM_DIR/litellm.yaml"
 kubectl -n litellm rollout status deploy/litellm-postgres --timeout=240s
 kubectl -n litellm rollout status deploy/litellm --timeout=300s
+echo "==> Exposing LiteLLM at http://litellm.localhost (API gateway)"
+kubectl apply -f "$SETUP_DIR/ingress/litellm.yaml"
 
 # --- Virtual key -------------------------------------------------------------
-# Short-lived port-forward to create the attendee-local virtual key through
-# the gateway's admin API. The bootstrap keeps its own forward for the smoke
-# gate; the key persists in LiteLLM's Postgres.
-echo "==> Creating the attendee-local virtual key"
-kubectl -n litellm port-forward svc/litellm 4000:4000 >/dev/null 2>&1 &
-PF_PID=$!
-sleep 2
-ADMIN_URL="http://localhost:4000"
+# Created through the API gateway (http://litellm.localhost), not a
+# port-forward. The key persists in LiteLLM's Postgres.
+GATEWAY_URL="http://litellm.localhost"
+echo "==> Creating the attendee-local virtual key via $GATEWAY_URL"
 for i in $(seq 1 30); do
-  if curl -fsS "$ADMIN_URL/health/readiness" >/dev/null 2>&1; then break; fi
+  if curl -fsS "$GATEWAY_URL/health/readiness" >/dev/null 2>&1; then break; fi
   sleep 2
 done
 KEY_RESPONSE="$(
-  curl -fsS -X POST "$ADMIN_URL/key/generate" \
+  curl -fsS -X POST "$GATEWAY_URL/key/generate" \
     -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
     -H "Content-Type: application/json" \
     -d '{"key_alias": "attendee-local", "max_budget": 10, "max_parallel_requests": 4, "tpm_limit": 200000}'
-)" || { echo "key/generate failed" >&2; kill "$PF_PID" 2>/dev/null || true; exit 1; }
+)" || { echo "key/generate failed" >&2; exit 1; }
 ATTENDEE_KEY="$(echo "$KEY_RESPONSE" | jq -r '.key // .token // empty')"
-kill "$PF_PID" 2>/dev/null || true
 if [[ -z "$ATTENDEE_KEY" ]]; then
   echo "Could not create the attendee-local virtual key. Gateway response:" >&2
   echo "$KEY_RESPONSE" >&2
@@ -162,10 +167,11 @@ cat <<EOF
 
 ==> In-cluster LiteLLM + Langfuse ready.
 
-  gateway:     http://litellm.litellm.svc.cluster.local:4000/v1
+  gateway:     http://litellm.litellm.svc.cluster.local:4000/v1  (in-cluster)
+  host:        http://litellm.localhost/v1  (via the API gateway)
   alias:       $LITELLM_MODEL_ALIAS
   attendee:    agents/hermes-llm (virtual key alias attendee-local)
-  langfuse:    $([[ "$INSTALL_LANGFUSE" == "true" ]] && echo "in-cluster (kubectl -n langfuse port-forward svc/langfuse-web 3000)" || echo "skipped (SKIP_LANGFUSE)")
+  langfuse:    $([[ "$INSTALL_LANGFUSE" == "true" ]] && echo "http://langfuse.localhost" || echo "skipped (SKIP_LANGFUSE)")
 
 Next: the bootstrap runs spike/smoke-hermes.sh against this gateway.
 EOF

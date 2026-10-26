@@ -130,5 +130,5 @@ Do not sit in the aisle — pick one of these while the room catches up:
 
 - **Break the other two scenarios.** You ran one of `crashloop` / `oom` / `bad-config`. Merge a second one (then `undo`) and read how Hermes's report differs between a rollout regression and a resource limit.
 - **Read the collector logs.** `kubectl -n shop logs deploy/collector -f` shows exactly what a successful exfil would look like, which makes Lab 4 step 3 much easier to follow.
-- **Explore Langfuse.** Port-forward the in-cluster Langfuse, find the trace for the triage you just watched, and read the prompt, the tool calls, and the token cost.
+- **Explore Langfuse.** Open http://langfuse.localhost (project `workshop`), find the trace for the triage you just watched, and read the prompt, the tool calls, and the token cost.
 - **Re-read the runbook Hermes used.** Open the runbook for the alert you triaged in `labs/02-knowledge-base/runbooks/` and check the "Learned from triage" section — that is where Hermes's PRs land.

@@ -1,0 +1,25 @@
+# API-gateway Ingress for the in-cluster Langfuse web UI, at
+# http://langfuse.localhost (the Next.js app needs the native root path, so
+# there is no /langfuse prefix rewrite).
+# Applied by labs/00-setup/install-litellm-langfuse.sh.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: langfuse
+  namespace: langfuse
+  labels:
+    app.kubernetes.io/name: langfuse
+    app.kubernetes.io/managed-by: golden-path
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: langfuse.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: langfuse-web
+                port:
+                  number: 3000

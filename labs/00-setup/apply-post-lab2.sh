@@ -6,6 +6,7 @@
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
+SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 : "${REPO_URL:?REPO_URL is required}"
 : "${REPO_WEB_URL:?REPO_WEB_URL is required}"
 export REPO_URL REPO_WEB_URL
@@ -15,4 +16,8 @@ envsubst '${REPO_URL}' < "$ROOT/labs/01-golden-path/platform/argocd/applications
 envsubst '${REPO_URL}' < "$ROOT/labs/02-knowledge-base/runbooks-app.yaml" | kubectl apply -f -
 kubectl apply -f "$ROOT/labs/03-hermes-triage/platform/rbac.yaml"
 envsubst '${REPO_WEB_URL}' < "$ROOT/labs/03-hermes-triage/alerts/prometheus-rules.yaml" | kubectl apply -f -
+echo "==> Exposing orders at http://orders.localhost (API gateway)"
+kubectl apply -f "$SETUP_DIR/ingress/orders.yaml"
+echo "==> Exposing Prometheus at http://prometheus.localhost (API gateway)"
+kubectl apply -f "$SETUP_DIR/ingress/prometheus.yaml"
 echo "==> Post-Lab 2 state applied"

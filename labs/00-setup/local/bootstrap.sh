@@ -142,18 +142,15 @@ kubectl -n agents create secret generic runbook-bot-github \
   --from-literal=GITHUB_REPO="$(echo "$REPO_URL" | sed -E 's#https?://github.com/##; s#\.git$##')" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# Model smoke gate: attendee key -> in-cluster gateway -> model, with a forced
-# tool call. If this does not pass, the environment is not ready for Lab 3.
-# It runs against the live gateway through a short-lived port-forward.
+# Model smoke gate: attendee key -> API gateway -> in-cluster LiteLLM -> model,
+# with a forced tool call. If this does not pass, the environment is not ready
+# for Lab 3. It runs through the gateway at http://litellm.localhost, the same
+# path the lab kill switch uses.
 echo "==> Model smoke gate (spike/smoke-hermes.sh)"
-SMOKE_URL_PORT=4000
-kubectl -n litellm port-forward svc/litellm "$SMOKE_URL_PORT:4000" >/dev/null 2>&1 &
-PF_PID=$!
-sleep 2
+SMOKE_URL="http://litellm.localhost"
 ATTENDEE_KEY="$(kubectl -n agents get secret hermes-llm -o jsonpath='{.data.OPENAI_API_KEY}' | base64 -d)"
 SMOKE_OK=0
-"$ROOT/spike/smoke-hermes.sh" "$ATTENDEE_KEY" "http://localhost:$SMOKE_URL_PORT" && SMOKE_OK=1 || true
-kill "$PF_PID" 2>/dev/null || true
+"$ROOT/spike/smoke-hermes.sh" "$ATTENDEE_KEY" "$SMOKE_URL" && SMOKE_OK=1 || true
 SMOKE_STATUS="$([[ "$SMOKE_OK" == "1" ]] && echo PASS || echo "FAIL - check OPENROUTER_API_KEY in $ENV_FILE")"
 LANGFUSE_NOTE="$( [[ "${SKIP_LANGFUSE:-}" == "true" ]] && echo "" || echo " + Langfuse" )"
 
@@ -163,6 +160,7 @@ cat <<EOF
 
 Smoke gate: $SMOKE_STATUS
   gateway:  http://litellm.litellm.svc.cluster.local:4000/v1  (alias qwen3.8-27b)
+  host:     http://litellm.localhost/v1  (via the API gateway)
   hermes:   agents/hermes-llm (virtual key alias attendee-local)
   kill:     kill-switch.sh local --block-key uses LITELLM_MASTER_KEY (see .litellm-admin)
   images:   agentic-idp/orders:0.1.0, hermes-triage:0.1.0, runbook-bot:0.1.0 (loaded into kind)
