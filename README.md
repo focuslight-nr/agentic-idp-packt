@@ -33,4 +33,8 @@ When the bootstrap finishes, `orders` and `runbooks` are `Synced` and `Healthy`.
 
 Labs 3 and 4 are the hands-on work. Labs 1 and 2 are already applied on a bootstrapped cluster.
 
+## Slides
+
+Follow along with the deck: [PDF](slides/agentic-idp-workshop.pdf) or [PowerPoint](slides/agentic-idp-workshop.pptx). Copy commands from the lab READMEs, not from the slides.
+
 Reset a broken cluster with `kind delete cluster --name agentic-idp`, then run `bootstrap.sh` again.
