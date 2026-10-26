@@ -33,8 +33,8 @@ The repository-wide agent rules are in [`AGENTS.md`](../../AGENTS.md).
 
 ## Try it (optional, non-blocking)
 
-Open Cursor in your repository and ask, in a new chat:
+Open an agent harness in your repository and ask, in a new chat:
 
 > Following the platform knowledge base, what are the exact steps to deploy a new agent called `hermes` on this platform?
 
-Cursor should find `AGENTS.md`, follow it to the guide, and answer with the folder, ServiceAccount, Secret, and PR steps. If it guesses or suggests `kubectl apply`, the knowledge base has a gap. The fix is in the docs, not in the prompt.
+The agent should find `AGENTS.md`, follow it to the guide, and answer with the folder, ServiceAccount, Secret, and PR steps. If it guesses or suggests `kubectl apply`, the knowledge base has a gap. The fix is in the docs, not in the prompt.

@@ -1,6 +1,6 @@
 # Onboarding a workshop environment
 
-This guide is for getting the local workshop environment running — and it is written so that a **coding agent (Cursor) can run it unattended**. Every check prints one JSON line with a clear `error` field, exactly like the CI check in the labs, so you can read a failure, fix that one thing, and re-run.
+This guide is for getting the local workshop environment running — and it is written so that a **coding agent (any agent harness) can run it unattended**. Every check prints one JSON line with a clear `error` field, exactly like the CI check in the labs, so you can read a failure, fix that one thing, and re-run.
 
 ## The sequence
 

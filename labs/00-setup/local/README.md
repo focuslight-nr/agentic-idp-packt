@@ -31,9 +31,9 @@ cp labs/00-setup/local/.env.example labs/00-setup/local/.env
 
 The bootstrap leaves the cluster in the post–Lab 2 state: `orders` and `runbooks` are `Synced` and `Healthy`. It builds `agentic-idp/orders:0.1.0`, `hermes-triage:0.1.0`, and `runbook-bot:0.1.0` and loads them into kind. It also requires the CI checks on your fork's `main`, so Lab 1's `latest` tag cannot be merged.
 
-## Auto-onboarding with Cursor
+## Auto-onboarding with an agent harness
 
-1. Ask Cursor: "Read `labs/02-knowledge-base/kb/guides/onboarding.md` and get this workshop environment running."
+1. Ask your agent harness: "Read `labs/02-knowledge-base/kb/guides/onboarding.md` and get this workshop environment running."
 2. The agent runs `preflight.sh`, fixes each failing check, and re-runs until the summary passes.
 3. It creates `.env` from values you provide, then runs `bootstrap.sh`.
 

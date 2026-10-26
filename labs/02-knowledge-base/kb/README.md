@@ -14,7 +14,7 @@ Regenerated from the platform sources by `labs/02-knowledge-base/scripts/generat
 
 ## Hand-written
 
-- [Guide: onboarding a workshop environment (human or Cursor agent)](guides/onboarding.md)
+- [Guide: onboarding a workshop environment (human or agent harness)](guides/onboarding.md)
 - [Guide: deploy an agent on the platform](guides/deploy-an-agent.md)
 - [Guide: the platform map — how the apps, labs, and tools link together](guides/platform-map.md)
 - [Runbooks](../runbooks/): one per alert, linked from the alert's `runbook_url`.

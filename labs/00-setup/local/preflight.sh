@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Preflight for the local kind environment. Prints one JSON line per check so a
-# human or a coding agent (Cursor) can read why a check failed and fix exactly
+# human or a coding agent (any agent harness) can read why a check failed and fix exactly
 # that. Exit code 0 when every check passes. This is pre-bootstrap: it checks
 # the machine, the tools, and the fork. It does not create anything.
 set -uo pipefail

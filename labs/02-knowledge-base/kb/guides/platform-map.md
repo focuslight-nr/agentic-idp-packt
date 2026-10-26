@@ -57,7 +57,7 @@ Read it once, top to bottom: a merge in Git is the only way anything changes (Ar
 flowchart LR
   L0["00 setup<br/>kind · git · fork · gh"] --> L1
   L1["Lab 1: golden path<br/>Argo CD · CI checks · a PR"] --> L2
-  L2["Lab 2: knowledge base<br/>AGENTS.md · llms.txt · generated docs · Cursor"] --> L3
+  L2["Lab 2: knowledge base<br/>AGENTS.md · llms.txt · generated docs · agent harness"] --> L3
   L3["Lab 3: Hermes triage<br/>Prometheus · Alertmanager · Hermes · k8s-mcp · LiteLLM · runbook-bot"] --> L4
   L4["Lab 4: guardrails<br/>Kyverno · drift · the kill switch"]
 ```
@@ -74,11 +74,11 @@ One line each, in the order they appear.
 | **Git + `gh` (your fork)** | The only write path. `main` is protected: a PR with a passing check, no exceptions — humans and bots alike. | 00 setup |
 | **Argo CD** | GitOps. An ApplicationSet watches the repo and applies every app folder; self-heal reverts anything applied outside Git. You will watch it bring a deleted policy back. | Lab 1 (demo), Lab 4 (drift) |
 | **CI check (`validate-apps.sh`)** | Validates every app folder and prints one JSON line per app: `pass`, or `fail` with the reason. Required on `main`, so a broken `values.yaml` can never merge. | Lab 1 |
-| **Cursor** | The coding agent you use to read the knowledge base and open PRs. It reads `AGENTS.md` and `llms.txt` — the same docs the platform agent reads. | Lab 2 |
+| **Agent harness** | The coding agent you use to read the knowledge base and open PRs. It reads `AGENTS.md` and `llms.txt` — the same docs the platform agent reads. | Lab 2 |
 | **Prometheus + Alertmanager** | Detect the failure (crash loop, OOM, bad config) and route it: Prometheus fires, Alertmanager posts the alert to Hermes. | Lab 3 |
 | **Hermes** | The agent. Built on [hermes-agent](https://github.com/NousResearch/hermes-agent) from Nous Research: a prompt in, tool calls out. It holds **no** cluster token and **no** GitHub token — only the LiteLLM key. It never merges anything. | Lab 3 |
 | **k8s-mcp** | The Model Context Protocol server that is Hermes's only door to Kubernetes. Runs read-only (`read_only = true` in its config) and acts as `hermes-reader`: it can list pods, read events and logs — it cannot delete, and cannot read Secrets. | Lab 3 |
-| **LiteLLM** | The model gateway, running inside your cluster. Hermes calls one alias (`triage`) with one virtual key that has a budget, a rate limit, and a fallback. It is also the **real kill switch**: block the key and every model call stops, everywhere, instantly. | Lab 3 (calls), Lab 4 (kill switch) |
+| **LiteLLM** | The model gateway, running inside your cluster. Hermes calls one alias (`triage`) with one virtual key that has a budget and a rate limit. It is also the **real kill switch**: block the key and every model call stops, everywhere, instantly. | Lab 3 (calls), Lab 4 (kill switch) |
 | **runbook-bot** | A tiny bot that holds the only GitHub token. It opens the two PRs Hermes's output becomes (triage report + proposed fix) and can only write a fix to an existing `labs/*/apps/*/values.yaml`. It cannot merge. | Lab 3 |
 | **Langfuse** | The observability side: every model call is traced — prompt, tool calls, tokens, cost. Read it in the observability section to see what a triage actually cost and did. | Lab 3 (observability) |
 | **Kyverno** | A policy engine at the Kubernetes API server, admission-time. The workshop policy (`deny-agent-direct-changes`) says: agent identities may not create, update, or delete anything directly. RBAC can be misconfigured; Kyverno is the second layer that still says no. | Lab 4 |
@@ -103,6 +103,6 @@ One line each, in the order they appear.
 | Lab | Golden path | Knowledge base | Triage | Guardrails |
 |---|---|---|---|---|
 | **What it does** | Ship `orders`: folder, PR, check, Argo | Docs the agent can trust: `llms.txt`, generated pages, freshness check | Break `orders`; watch Hermes triage; prove the leak cannot leave | Prove each layer: policy, drift, the approved hole, the real stop |
-| **Tools on screen** | `gh`, `yq`, Argo CD UI, CI JSON | `generate-docs.sh`, Cursor, `llms.txt` | `break-orders.sh`, `kubectl logs`, LiteLLM, the two PRs | Kyverno dry-run, `delete networkpolicy`, the helpful PR, `kill-switch.sh` |
+| **Tools on screen** | `gh`, `yq`, Argo CD UI, CI JSON | `generate-docs.sh`, agent harness, `llms.txt` | `break-orders.sh`, `kubectl logs`, LiteLLM, the two PRs | Kyverno dry-run, `delete networkpolicy`, the helpful PR, `kill-switch.sh` |
 
 If a name in a lab is new, this page is where to look before asking.

@@ -27,7 +27,7 @@ The service is `orders`, in the `shop` namespace. It stays with you for the whol
 ## Guided demo
 
 1. Walk through `apps/orders/` and the chart.
-2. Show `orders` in Argo CD at http://argocd.localhost (it also serves `orders` at http://orders.localhost).
+2. Show `orders` in Argo CD at http://argocd.localhost (it also serves `orders` at http://orders.localhost/orders).
 3. Change `orders` in a pull request (for example `ORDER_DB`), and show the `golden-path-ci` check, the merge, and the sync. Argo CD polls every 30 seconds. A hard refresh skips the wait: `kubectl -n argocd annotate application orders argocd.argoproj.io/refresh=hard --overwrite`.
 
 ## Try it (optional, non-blocking)
@@ -42,7 +42,7 @@ gh pr create --fill
 gh pr checks --watch
 ```
 
-The check fails with `{"app":"labs/01-golden-path/apps/orders","status":"fail","error":"image.tag is required and must not be latest"}`. Bootstrap required that check on `main`, so the merge is blocked. Close the PR and go back to `main` when you are done:
+The `validate` check fails with `{"app":"labs/01-golden-path/apps/orders","status":"fail","error":"image.tag is required and must not be latest"}`. `freshness` and `verify` fail too, because the generated service catalog lists the image tag and is now stale. Bootstrap required these checks on `main`, so the merge is blocked. Close the PR and go back to `main` when you are done:
 
 ```bash
 gh pr close try-lab-01 --delete-branch && git checkout main

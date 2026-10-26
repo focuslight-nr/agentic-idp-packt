@@ -17,7 +17,6 @@ Create the cluster with the bootstrap in [`local/`](local/). If a laptop breaks,
    ```bash
    git clone https://github.com/<you>/agentic-idp-packt.git
    cd agentic-idp-packt
-   cursor .
    ```
 
 2. Make `gh` target your fork, not the upstream:
@@ -53,7 +52,7 @@ Every web surface is on host port 80, routed by host name (macOS resolves
 | http://argocd.localhost | Argo CD UI |
 | http://litellm.localhost | LiteLLM gateway (`/v1`, `/key`, `/health/readiness`) |
 | http://langfuse.localhost | Langfuse UI (project `workshop`, the bootstrap's admin user) |
-| http://orders.localhost | the `orders` service |
+| http://orders.localhost/orders | the `orders` service (`/` returns 404) |
 
 ## ArgoCD UI
 

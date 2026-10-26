@@ -17,7 +17,7 @@
 
 ## Guides
 
-- [Onboarding a workshop environment (human or Cursor agent)](kb/guides/onboarding.md)
+- [Onboarding a workshop environment (human or agent harness)](kb/guides/onboarding.md)
 - [Deploy an agent on the platform](kb/guides/deploy-an-agent.md)
 - [The platform map: how the tools link together](kb/guides/platform-map.md)
 

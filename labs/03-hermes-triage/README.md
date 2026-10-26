@@ -61,7 +61,7 @@ The identities, the alert rules, and the Secrets are already applied in your env
    kubectl auth can-i get secrets --as=system:serviceaccount:agents:hermes-reader -A   # no
    ```
 
-2. **Ship Hermes through the golden path.** Follow the [deploy-an-agent guide](../02-knowledge-base/kb/guides/deploy-an-agent.md), or ask Cursor to do it. Either way, the result is:
+2. **Ship Hermes through the golden path.** Follow the [deploy-an-agent guide](../02-knowledge-base/kb/guides/deploy-an-agent.md), or ask an agent harness to do it. Either way, the result is:
 
    ```bash
    git checkout -b lab-03-hermes
@@ -130,5 +130,5 @@ Do not sit in the aisle — pick one of these while the room catches up:
 
 - **Break the other two scenarios.** You ran one of `crashloop` / `oom` / `bad-config`. Merge a second one (then `undo`) and read how Hermes's report differs between a rollout regression and a resource limit.
 - **Read the collector logs.** `kubectl -n shop logs deploy/collector -f` shows exactly what a successful exfil would look like, which makes Lab 4 step 3 much easier to follow.
-- **Explore Langfuse.** Open http://langfuse.localhost (project `workshop`), find the trace for the triage you just watched, and read the prompt, the tool calls, and the token cost.
+- **Explore Langfuse.** Open http://langfuse.localhost (project `workshop`), find the traces for the triage you just watched, and read the prompt, the tool calls, and the token cost. Each model call is its own `litellm-acompletion` trace, so one triage is several traces: filter by the time the alert fired.
 - **Re-read the runbook Hermes used.** Open the runbook for the alert you triaged in `labs/02-knowledge-base/runbooks/` and check the "Learned from triage" section — that is where Hermes's PRs land.

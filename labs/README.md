@@ -51,11 +51,11 @@ flowchart LR
 
 ## Prerequisites
 
-- A laptop with Docker configured for 16 GB of memory and 4 CPUs.
+- A laptop with Docker configured for 12 GB of memory (16 recommended) and 4 CPUs.
 - `kubectl`, `git`, the `gh` CLI (2.50 or newer — Lab 1 uses `gh pr checks --watch`), `helm`, `kind`, `yq` (mikefarah 4.x), `jq`, `envsubst`, `kubeconform`, and `helm-docs`.
-- Cursor installed, with a plan that allows agent use.
+- An agent harness (a coding agent that can read the repo and run commands), with a plan that allows agent use.
 - A fork of the public upstream repository. `GH_REPO` must point at your fork so `gh` targets it, not the upstream.
 
-**Check yourself (or let the agent check you):** `./labs/00-setup/local/preflight.sh` prints one JSON line per check — Docker running, memory, CPUs, disk, every tool with the right version, `gh` login, `GH_REPO` fork — plus a summary and a non-zero exit while anything fails. Ask Cursor to "read `labs/02-knowledge-base/kb/guides/onboarding.md` and get this environment running" and it will run that loop for you: read the failures, fix them, re-run, then bootstrap and verify.
+**Check yourself (or let the agent check you):** `./labs/00-setup/local/preflight.sh` prints one JSON line per check — Docker running, memory, CPUs, disk, every tool with the right version, `gh` login, `GH_REPO` fork — plus a summary and a non-zero exit while anything fails. Ask your agent harness to "read `labs/02-knowledge-base/kb/guides/onboarding.md` and get this environment running" and it will run that loop for you: read the failures, fix them, re-run, then bootstrap and verify.
 
 If your laptop breaks, reset it with `kind delete cluster --name agentic-idp` and re-run [the bootstrap](00-setup/local/bootstrap.sh). Setup steps: [00-setup/local](00-setup/local/).
