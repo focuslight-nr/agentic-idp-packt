@@ -25,5 +25,4 @@ resources:
     # Comfortably above the app's ~10 MiB working set. The OOM scenario lowers
     # this to 6Mi, which is below the app's baseline and so produces OOMKilled.
     memory: 64Mi
-args:
-  - --orders-v2
+args: []
