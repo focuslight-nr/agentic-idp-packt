@@ -35,6 +35,9 @@ probes:
 # -- Plain environment variables, as a map of name to value.
 env: {}
 
+# -- Log level for the workload.
+logLevel: info
+
 # -- Names of Secrets loaded as environment variables (envFrom).
 envFromSecrets: []
 
