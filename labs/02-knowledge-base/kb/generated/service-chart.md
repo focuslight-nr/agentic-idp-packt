@@ -17,7 +17,7 @@ Golden path chart for every workload on the platform, used by humans and agents 
 | configFiles | object | `{}` | Files rendered into a ConfigMap and mounted one by one, as a map of file name to content. |
 | configMapMounts | list | `[]` | Existing ConfigMaps mounted as directories, as a list of `name` and `mountPath`. Updates reach the pod without a restart. |
 | configMountPath | string | `"/config"` | Directory where `configFiles` are mounted. |
-| env | object | `{}` | Plain environment variables, as a map of name to value. |
+| env | object | `{}` | Plain environment variables, as a map of name to value. Values are rendered as strings. |
 | envFromSecrets | list | `[]` | Names of Secrets loaded as environment variables (envFrom). |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | image.repository | string | `""` | Container image repository. Required. |

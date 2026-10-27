@@ -32,11 +32,8 @@ probes:
   # -- HTTP path used by both probes.
   path: /healthz
 
-# -- Plain environment variables, as a map of name to value.
+# -- Plain environment variables, as a map of name to value. Values are rendered as strings.
 env: {}
-
-# -- Log level for the workload.
-logLevel: info
 
 # -- Names of Secrets loaded as environment variables (envFrom).
 envFromSecrets: []
