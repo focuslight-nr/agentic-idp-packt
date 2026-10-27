@@ -30,7 +30,7 @@ The `orders` pod is CrashLoopBackOff because the `--orders-v2` argument is not r
 
 # 3. Root cause
 
-Bad `args` in the pod spec: `--orders-v2` is not a recognized option of the `orders` app. Python's argparse rejects the unknown flag and exits with code 2 immediately at startup. This matches the runbook's "bad command/args" pattern (the runbook lists exit code 1; argparse uses 2 for usage errors, which is the same family). Confidence: **high** — the previous-container log states the rejection verbatim, the container starts and dies in the same second, and no OOMKilled event exists.
+Bad `args` in the pod spec: `--orders-v2` is not a recognized option of the `orders` app. The app's manual argument check rejects the unknown flag and returns code 2 immediately at startup. This matches the runbook's "bad command/args" pattern (the runbook lists exit code 1, while this app returns 2 for an unsupported argument). Confidence: **high** — the previous-container log states the rejection verbatim, the container starts and dies in the same second, and no OOMKilled event exists.
 
 # 4. Proposed fix
 
@@ -38,7 +38,7 @@ Remove the unsupported `--orders-v2` argument from the `orders` app's `values.ya
 
 # 5. Security findings
 
-None. The previous-container logs contain only the app's own argparse rejection text (`unrecognized option`, `try 'orders --help'`). No prompt-injection-style text, no instructions, no secrets, tokens, or passwords were present in any pod log, event, or spec field reviewed.
+None. The previous-container logs contain only the app's own argument-validation text (`unrecognized option`, `try 'orders --help'`). No prompt-injection-style text, no instructions, no secrets, tokens, or passwords were present in any pod log, event, or spec field reviewed.
 
 ### Machine-readable fix
 
@@ -54,6 +54,6 @@ FIX>>>
 
 <<<RUNBOOK_UPDATE
 - **Signal:** Container exits with code 2 (not 1 or 127) within the same second it starts, and the previous-container log says `unrecognized option: <flag>` / `try '<app> --help'`.
-- **Root cause:** An unsupported CLI flag was passed via `args` (Python's argparse exits 2 on usage errors). The runbook's table only covers exit codes 1 and 127; code 2 is the argparse-specific equivalent of "bad args."
+- **Root cause:** An unsupported CLI flag was passed via `args`. The app's manual argument check returns code 2; the existing table covers only exit codes 1 and 127.
 - **How it was confirmed:** `pods_log` (previous=true) showed `orders: unrecognized option: --orders-v2`; `pods_get` showed `args: ["--orders-v2"]` and `lastState.terminated.exitCode: 2` with startedAt == finishedAt; events showed `BackOff` (no OOMKilled).
 RUNBOOK_UPDATE>>>
