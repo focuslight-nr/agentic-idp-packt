@@ -1,0 +1,86 @@
+image:
+  repository: hermes-triage
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+port: 8080
+serviceAccountName: hermes
+envFromSecrets:
+  - hermes-llm
+env:
+  HERMES_CMD: "hermes chat -Q -q"
+  DEDUP_WINDOW_SECONDS: "900"
+  RUNBOOK_DIR: /app/runbooks
+  # Base URL only; alert_bridge posts to /triage-pr and /fix-pr.
+  RUNBOOK_BOT_URL: http://runbook-bot.agents.svc.cluster.local
+# The network policy below also blocks kubelet probes; allowing them would mean allowing the whole node range.
+probes:
+  enabled: false
+# Hermes's guardrail: Alertmanager in, and only DNS, its MCP server, the runbook
+# bot, and the LiteLLM gateway on port 4000 out. LiteLLM runs in the same kind
+# cluster, so the gateway is reached by a namespace + pod selector on port
+# 4000 — no VPC CIDR, no SERVICE CIDR, and no port-4000 hygiene rule (B3 is
+# resolved). Loosening this list is a reviewed change in Git.
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: k8s-mcp
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: runbook-bot
+      ports:
+        - port: 8080
+          protocol: TCP
+    # In-cluster LiteLLM: both selectors must match (litellm namespace,
+    # app.kubernetes.io/name: litellm pod), port 4000 only.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: litellm
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: litellm
+      ports:
+        - port: 4000
+          protocol: TCP
+configMapMounts:
+  - name: runbooks
+    mountPath: /app/runbooks
+configMountPath: /root/.hermes
+configFiles:
+  config.yaml: |
+    model:
+      provider: custom
+      base_url: ${OPENAI_BASE_URL}
+      api_key: ${OPENAI_API_KEY}
+      default: triage
+    mcp_servers:
+      kubernetes:
+        url: http://k8s-mcp.agents.svc.cluster.local/mcp
+    toolsets:
+      disabled: [terminal, file, web, browser, code_execution]
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 1Gi

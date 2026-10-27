@@ -1,0 +1,4 @@
+name: k8s-mcp
+namespace: agents
+owner: platform-team
+description: Read-only Kubernetes MCP server. The only way agents reach the cluster.

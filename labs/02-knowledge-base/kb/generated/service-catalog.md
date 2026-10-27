@@ -5,3 +5,6 @@
 | App | Namespace | Owner | Image | Source |
 |---|---|---|---|---|
 | orders | shop | platform-team | `agentic-idp/orders:0.1.0` | `labs/01-golden-path/apps/orders` |
+| hermes | agents | platform-team | `hermes-triage:0.1.0` | `labs/03-hermes-triage/apps/hermes` |
+| k8s-mcp | agents | platform-team | `quay.io/containers/kubernetes_mcp_server:v0.0.69` | `labs/03-hermes-triage/apps/k8s-mcp` |
+| runbook-bot | agents | platform-team | `runbook-bot:0.1.0` | `labs/03-hermes-triage/apps/runbook-bot` |
