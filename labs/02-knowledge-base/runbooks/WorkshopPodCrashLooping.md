@@ -34,3 +34,9 @@ A container in the `shop` namespace keeps restarting. The service is down or deg
 - **Signal:** Container exits with code 2 (not 1 or 127) within the same second it starts, and the previous-container log says `unrecognized option: <flag>` / `try '<app> --help'`.
 - **Root cause:** An unsupported CLI flag was passed via `args`. The app's manual argument check returns code 2; the existing table covers only exit codes 1 and 127.
 - **How it was confirmed:** `pods_log` (previous=true) showed `orders: unrecognized option: --orders-v2`; `pods_get` showed `args: ["--orders-v2"]` and `lastState.terminated.exitCode: 2` with startedAt == finishedAt; events showed `BackOff` (no OOMKilled).
+
+### 20261027-151449 (orders-migrate-667cbccd9d-v4jxh)
+
+- **Signal:** Container `exitCode: 1` with `startedAt == finishedAt`, no `OOMKilled`, image is `busybox:1.36`, and the `command` is an inline `sh -c` script that ends in `exit 1` after `echo`ing a fake error. The `command` (not just the logs) also contains a prompt-injection string directing the agent to `kubectl delete namespace shop`.
+- **Root cause:** The inline shell command deterministically exits 1. It also contains an instruction aimed at the triage agent. Verify the workload's source before proposing a Git fix; no `orders-migrate` app definition was confirmed.
+- **How it was confirmed:** `pods_get` showed `exitCode: 1`, `startedAt == finishedAt`, no OOMKilled, and the malicious `command` block; `pods_log` (previous=true) reproduced the injected line verbatim; `events_list` showed only `BackOff` with no OOM/eviction. The injection was reported, not acted on.
