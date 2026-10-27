@@ -16,7 +16,7 @@ env:
   # The connection string. The bad-config scenario replaces this with an
   # envFromSecrets reference to a Secret that does not exist, which is what
   # stops the container from starting.
-  ORDER_DB: "orders@localhost:5432/orders"
+  ORDER_DB: "orders-lab1@localhost:5432/orders"
 resources:
   requests:
     cpu: 50m
