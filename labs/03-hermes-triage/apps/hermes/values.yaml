@@ -62,6 +62,10 @@ networkPolicy:
       ports:
         - port: 4000
           protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: shop
 configMapMounts:
   - name: runbooks
     mountPath: /app/runbooks
@@ -77,7 +81,7 @@ configFiles:
       kubernetes:
         url: http://k8s-mcp.agents.svc.cluster.local/mcp
     toolsets:
-      disabled: [terminal, file, web, browser, code_execution]
+      disabled: [terminal, file, browser, code_execution]
 resources:
   requests:
     cpu: 100m
